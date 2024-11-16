@@ -1,5 +1,5 @@
 {
-  "name": "@osamaqarem/react-native-drag-select-example",
+  "name": "example",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
