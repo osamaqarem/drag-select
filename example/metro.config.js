@@ -1,6 +1,6 @@
-const path = require('path');
-const { getDefaultConfig } = require('@expo/metro-config');
-const root = path.resolve(__dirname, '..');
+const path = require("path")
+const { getDefaultConfig } = require("@expo/metro-config")
+const root = path.resolve(__dirname, "..")
 
 /**
  * Metro configuration
@@ -8,9 +8,9 @@ const root = path.resolve(__dirname, '..');
  *
  * @type {import('metro-config').MetroConfig}
  */
-const config = getDefaultConfig(__dirname);
+const config = getDefaultConfig(__dirname)
 
-config.watchFolders = [root];
-config.resolver.nodeModulesPaths = [path.resolve(root, 'node_modules')];
+config.watchFolders = [root]
+config.resolver.nodeModulesPaths = [path.resolve(root, "node_modules")]
 
-module.exports = config;
+module.exports = config
