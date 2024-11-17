@@ -55,14 +55,18 @@ function List() {
     selectedItems,
   } = useDragSelect({
     data,
-    columnCount: 1,
-    columnSeparatorWidth: 0,
-    rowSeparatorHeight: 0,
-    headerHeight: 0,
-    gestureConfig: { longPressTiming: 300 },
-    listRef: flatlist,
-    itemSize: { height: 100, width: deviceWidth },
-    safeArea: { topInset, bottomInset },
+    list: {
+      numColumns: 1,
+      columnSeparatorWidth: 0,
+      rowSeparatorHeight: 0,
+      headerHeight: 0,
+      ref: flatlist,
+      itemSize: { height: 100, width: deviceWidth },
+      safeArea: { topInset, bottomInset },
+    },
+    gestures: {
+      longPressMinDurationMs: 300,
+    },
     onItemPress: (item) => {
       console.log("onItemPress", item.id)
     },
@@ -88,6 +92,7 @@ function List() {
           <Animated.FlatList<Item>
             style={styles.flatlist}
             data={data}
+            numColumns={1}
             renderItem={({ item }) => (
               <Item item={item} createGesture={createListItemGesture} />
             )}

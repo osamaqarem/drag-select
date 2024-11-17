@@ -15,25 +15,27 @@ type Item = { id: string }
 
 export interface Config {
   data: Array<Item>
-  columnCount: number
-  rowSeparatorHeight: number
-  columnSeparatorWidth: number
-  headerHeight: number
+  list: {
+    ref: AnimatedRef<FlatList>
+    numColumns: number
+    rowSeparatorHeight: number
+    columnSeparatorWidth: number
+    headerHeight: number
+    safeArea: {
+      topInset: number
+      bottomInset: number
+    }
+    itemSize: {
+      width: number
+      height: number
+    }
+  }
+  gestures: {
+    longPressMinDurationMs: number
+  }
   onItemPress: (item: Item) => void
   onItemSelected: (item: Item) => void
   onItemDeselected: (item: Item) => void
-  listRef: AnimatedRef<FlatList>
-  gestureConfig: {
-    longPressTiming: number
-  }
-  safeArea: {
-    topInset: number
-    bottomInset: number
-  }
-  itemSize: {
-    width: number
-    height: number
-  }
 }
 
 export const useDragSelect = (config: Config) => {
@@ -63,13 +65,15 @@ export const useDragSelect = (config: Config) => {
     if (!selectModeActive.value || !flatlistLayout.value || !config.data) return
 
     const {
-      columnCount,
-      columnSeparatorWidth,
       data,
-      headerHeight,
-      itemSize,
-      rowSeparatorHeight,
-      safeArea,
+      list: {
+        numColumns,
+        columnSeparatorWidth,
+        headerHeight,
+        itemSize,
+        rowSeparatorHeight,
+        safeArea,
+      },
     } = config
 
     const windowHeight = flatlistLayout.value.height
@@ -78,7 +82,7 @@ export const useDragSelect = (config: Config) => {
     const cellWidth = itemSize.width + columnSeparatorWidth
 
     const numItemsYAxis = Math.ceil(windowHeight / cellHeight)
-    const numItemsXAxis = columnCount
+    const numItemsXAxis = numColumns
 
     const headerArea = headerHeight + safeArea.topInset
     // account for top padding
@@ -148,7 +152,7 @@ export const useDragSelect = (config: Config) => {
       const scrolledRows = headerHidden
         ? Math.floor(Math.abs((headerArea - scrollOffset.value) / cellHeight))
         : 0
-      const rowBeginsAtIndex = scrolledRows * columnCount
+      const rowBeginsAtIndex = scrolledRows * numColumns
 
       const getArrayIndexForDimensions = (
         rowIndex: number,
@@ -156,8 +160,8 @@ export const useDragSelect = (config: Config) => {
       ) => {
         const arraysStartAtZero = 1
         return (
-          rowIndex * columnCount -
-          (columnCount - colIndex) +
+          rowIndex * numColumns -
+          (numColumns - colIndex) +
           rowBeginsAtIndex -
           arraysStartAtZero
         )
@@ -222,8 +226,8 @@ export const useDragSelect = (config: Config) => {
         const axisItem = selectedItems.value[selectedAxisName.value]
         const axisIndex = data.findIndex((d) => d.id === axisItem?.id)
 
-        const axisRow = Math.floor(axisIndex / config.columnCount) + 1
-        const toRow = Math.floor(itemIndex / config.columnCount) + 1
+        const axisRow = Math.floor(axisIndex / config.list.numColumns) + 1
+        const toRow = Math.floor(itemIndex / config.list.numColumns) + 1
 
         const afterAxisRow = toRow > axisRow
         const isAxisRow = toRow === axisRow
@@ -281,13 +285,13 @@ export const useDragSelect = (config: Config) => {
       const outputRange = [0, 8]
       const result = interpolate(y, inputRange, outputRange)
       const offset = scrollOffset.value + result
-      scrollTo(config.listRef, 0, offset, false)
+      scrollTo(config.list.ref, 0, offset, false)
     } else if (scrollOffset.value > 0 && y < topThreshold) {
       const inputRange = [topThreshold, 0]
       const outputRange = [0, 8]
       const result = interpolate(y, inputRange, outputRange)
       const offset = scrollOffset.value - result
-      scrollTo(config.listRef, 0, offset, false)
+      scrollTo(config.list.ref, 0, offset, false)
     }
   }, false)
 
@@ -325,7 +329,7 @@ export const useDragSelect = (config: Config) => {
   }
 
   const panGesture = Gesture.Pan()
-    .activateAfterLongPress(config.gestureConfig.longPressTiming)
+    .activateAfterLongPress(config.gestures.longPressMinDurationMs)
     .onStart(() => {
       runOnJS(setFrameCbActive)(true)
     })
@@ -342,11 +346,11 @@ export const useDragSelect = (config: Config) => {
 
   const createListItemGesture = (item: Item) => {
     const tapGesture = Gesture.Tap()
-      .maxDuration(config.gestureConfig.longPressTiming)
+      .maxDuration(config.gestures.longPressMinDurationMs)
       .onStart(() => tapOnStart(item.id))
 
     const longPressGesture = Gesture.LongPress()
-      .minDuration(config.gestureConfig.longPressTiming)
+      .minDuration(config.gestures.longPressMinDurationMs)
       .onStart(() => longPressOnStart(item.id))
       .simultaneousWithExternalGesture(panGesture)
 
