@@ -117,17 +117,7 @@
       "prettier"
     ],
     "rules": {
-      "react/react-in-jsx-scope": "off",
-      "prettier/prettier": [
-        "error",
-        {
-          "quoteProps": "consistent",
-          "singleQuote": true,
-          "tabWidth": 2,
-          "trailingComma": "es5",
-          "useTabs": false
-        }
-      ]
+      "react/react-in-jsx-scope": "off"
     }
   },
   "eslintIgnore": [
@@ -136,7 +126,8 @@
   ],
   "prettier": {
     "quoteProps": "consistent",
-    "singleQuote": true,
+    "singleQuote": false,
+    "semi": false,
     "tabWidth": 2,
     "trailingComma": "es5",
     "useTabs": false
