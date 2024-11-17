@@ -36,25 +36,16 @@ export interface Config {
   }
 }
 
-function getRecordMap<T extends { id: string }>(
-  list: Array<T>
-): Record<string, T> {
-  "worklet"
-  let record: Record<string, T> = {}
-  for (let i = 0; i < list.length; i++) {
-    const item = list[i]
-    if (item) {
-      record[item.id] = item
-    }
-  }
-  return record
-}
-
 export const useDragSelect = (config: Config) => {
-  const itemMap = useDerivedValue(() => getRecordMap(config.data))
+  const itemMap = useDerivedValue(
+    () => new Map(config.data.map((d) => [d.id, d]))
+  )
 
   const selectedItems = useSharedValue<Record<string, Item>>({})
-  const flatlistLayout = useSharedValue<LayoutRectangle | null>(null)
+  const selectedAxisName = useSharedValue("")
+  const selectModeActive = useDerivedValue(
+    () => Object.keys(selectedItems.value).length > 0
+  )
 
   const panTransitionFromIndex = useSharedValue<number | null>(null)
   const panEvent = useSharedValue({
@@ -62,14 +53,10 @@ export const useDragSelect = (config: Config) => {
     absoluteX: null as number | null,
   })
 
+  const flatlistLayout = useSharedValue<LayoutRectangle | null>(null)
+
   const scrollContentHeight = useSharedValue(0)
   const scrollOffset = useSharedValue(0)
-
-  const selectedAxisName = useSharedValue("")
-
-  const selectModeActive = useDerivedValue(
-    () => Object.keys(selectedItems.value).length > 0
-  )
 
   const handleDragSelect = (e: { y: number; absoluteX: number }) => {
     "worklet"
@@ -180,7 +167,7 @@ export const useDragSelect = (config: Config) => {
 
       const getItemFromState = (index: number) => {
         const itemInState = data[index]
-        return itemInState ? itemMap.value[itemInState.id] : undefined
+        return itemInState ? itemMap.value.get(itemInState.id) : undefined
       }
 
       const item = getItemFromState(itemIndex)
@@ -306,7 +293,7 @@ export const useDragSelect = (config: Config) => {
 
   const longPressOnStart = (id: string) => {
     "worklet"
-    const longPressed = itemMap.value[id]
+    const longPressed = itemMap.value.get(id)
     if (!longPressed) return
     if (selectedItems.value[longPressed.id]) return
     const axis = { ...longPressed, isLongPressAxis: true }
@@ -320,7 +307,7 @@ export const useDragSelect = (config: Config) => {
 
   const tapOnStart = (id: string) => {
     "worklet"
-    const tapped = itemMap.value[id]
+    const tapped = itemMap.value.get(id)
     if (!tapped) return
     if (selectModeActive.value) {
       const item = selectedItems.value[id]
