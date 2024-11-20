@@ -1,11 +1,11 @@
 import { useDragSelect } from "@osamaqarem/react-native-drag-select"
 import {
+  Dimensions,
   FlatList,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
   type TextInputProps,
 } from "react-native"
@@ -17,6 +17,7 @@ import {
 import Animated, {
   useAnimatedProps,
   useAnimatedRef,
+  useAnimatedScrollHandler,
 } from "react-native-reanimated"
 import {
   SafeAreaProvider,
@@ -40,43 +41,40 @@ const data: Array<Item> = Array.from({ length: 100 }, (_, i) => ({
   id: (i + 1).toString(),
 }))
 
+const ITEM_HEIGHT = 100
+const ITEM_WIDTH = Dimensions.get("window").width / 2
+
 function List() {
-  const { width: deviceWidth } = useWindowDimensions()
-  const { top: topInset, bottom: bottomInset } = useSafeAreaInsets()
+  const { top: topInset } = useSafeAreaInsets()
 
   const flatlist = useAnimatedRef<FlatList<Item>>()
 
-  const {
-    panGesture,
-    createListItemGesture,
-    scrollHandler,
-    onListLayout,
-    clearSelection,
-    selectedItems,
-  } = useDragSelect({
-    data,
-    list: {
-      numColumns: 1,
-      columnSeparatorWidth: 0,
-      rowSeparatorHeight: 0,
-      headerHeight: 0,
-      ref: flatlist,
-      itemSize: { height: 100, width: deviceWidth },
-      safeArea: { topInset, bottomInset },
-    },
-    gestures: {
-      longPressMinDurationMs: 300,
-    },
-    onItemPress: (item) => {
-      console.log("onItemPress", item.id)
-    },
-    onItemSelected: (item) => {
-      console.log("onItemSelected", item.id)
-    },
-    onItemDeselected: (item) => {
-      console.log("DESELECT", item.id)
-    },
-  })
+  const { gestures, handleScrollEvent, clearSelection, selectedItems } =
+    useDragSelect({
+      data,
+      key: "id",
+      list: {
+        numColumns: 2,
+        columnSeparatorWidth: 0,
+        rowSeparatorHeight: 0,
+        animatedRef: flatlist,
+        itemSize: { height: ITEM_HEIGHT, width: ITEM_WIDTH },
+      },
+      gestures: {
+        longPressDurationMs: 300,
+      },
+      onItemPress: (item) => {
+        console.log("onItemPress", item.id)
+      },
+      onItemSelected: (item) => {
+        console.log("onItemSelected", item.id)
+      },
+      onItemDeselected: (item) => {
+        console.log("onItemDeselected", item.id)
+      },
+    })
+
+  const scrollHandler = useAnimatedScrollHandler(handleScrollEvent)
 
   const animatedProps = useAnimatedProps(() => {
     const count = Object.keys(selectedItems.value).length.toString()
@@ -87,18 +85,20 @@ function List() {
 
   return (
     <>
-      <GestureDetector gesture={panGesture}>
+      <GestureDetector gesture={gestures.panHandler}>
         <SafeAreaView style={styles.safeArea}>
           <Animated.FlatList<Item>
             style={styles.flatlist}
             data={data}
-            numColumns={1}
+            numColumns={2}
             renderItem={({ item }) => (
-              <Item item={item} createGesture={createListItemGesture} />
+              <Item
+                item={item}
+                createGesture={gestures.createItemPressHandler}
+              />
             )}
             keyExtractor={(item) => item.id.toString()}
             ref={flatlist}
-            onLayout={onListLayout}
             onScroll={scrollHandler}
           />
         </SafeAreaView>
@@ -146,13 +146,15 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "pink",
+    justifyContent: "center",
   },
   flatlist: {
     flex: 1,
     backgroundColor: "white",
   },
   item: {
-    height: 100,
+    height: ITEM_HEIGHT,
+    width: ITEM_WIDTH,
     backgroundColor: "lightblue",
     justifyContent: "center",
     alignItems: "center",

@@ -1,49 +1,27 @@
-import { FlatList, type LayoutRectangle } from "react-native"
+import { useWindowDimensions } from "react-native"
 import { Gesture } from "react-native-gesture-handler"
 import {
   interpolate,
+  measure,
   runOnJS,
   scrollTo,
-  useAnimatedScrollHandler,
   useDerivedValue,
   useFrameCallback,
   useSharedValue,
-  type AnimatedRef,
+  type MeasuredDimensions,
 } from "react-native-reanimated"
+import type { ReanimatedScrollEvent } from "react-native-reanimated/lib/typescript/hook/commonTypes"
+import type { Config } from "./types"
 
-type Item = { id: string }
-
-export interface Config {
-  data: Array<Item>
-  list: {
-    ref: AnimatedRef<FlatList>
-    numColumns: number
-    rowSeparatorHeight: number
-    columnSeparatorWidth: number
-    headerHeight: number
-    safeArea: {
-      topInset: number
-      bottomInset: number
-    }
-    itemSize: {
-      width: number
-      height: number
-    }
-  }
-  gestures: {
-    longPressMinDurationMs: number
-  }
-  onItemPress: (item: Item) => void
-  onItemSelected: (item: Item) => void
-  onItemDeselected: (item: Item) => void
-}
-
-export const useDragSelect = (config: Config) => {
+export function useDragSelect<
+  ListItem extends Record<Key, string>,
+  Key extends keyof ListItem,
+>(config: Config<ListItem, Key>) {
   const itemMap = useDerivedValue(
-    () => new Map(config.data.map((d) => [d.id, d]))
+    () => new Map(config.data.map((d) => [d[config.key] as string, d]))
   )
 
-  const selectedItems = useSharedValue<Record<string, Item>>({})
+  const selectedItems = useSharedValue<Record<string, ListItem>>({})
   const selectedAxisName = useSharedValue("")
   const selectModeActive = useDerivedValue(
     () => Object.keys(selectedItems.value).length > 0
@@ -55,28 +33,40 @@ export const useDragSelect = (config: Config) => {
     absoluteX: null as number | null,
   })
 
-  const flatlistLayout = useSharedValue<LayoutRectangle | null>(null)
+  const listLayout = useSharedValue<MeasuredDimensions | null>(null)
 
   const scrollContentHeight = useSharedValue(0)
   const scrollOffset = useSharedValue(0)
 
-  const handleDragSelect = (e: { y: number; absoluteX: number }) => {
+  const { width: deviceWidth, height: deviceHeight } = useWindowDimensions()
+
+  function maybeMeasureListLayout() {
     "worklet"
-    if (!selectModeActive.value || !flatlistLayout.value || !config.data) return
+    // This is 'memoized' for now, but we likely need to support dynamic layouts.
+    if (listLayout.value) return
+    listLayout.value = measure(config.list.animatedRef)
+    if (!listLayout.value) {
+      throw new Error("Failed to measure layout: `measure` returned `null`")
+    }
+  }
+
+  function handleDragSelect(e: { y: number; absoluteX: number }) {
+    "worklet"
+    if (!selectModeActive.value || !listLayout.value || !config.data) return
 
     const {
       data,
-      list: {
-        numColumns,
-        columnSeparatorWidth,
-        headerHeight,
-        itemSize,
-        rowSeparatorHeight,
-        safeArea,
-      },
+      list: { numColumns, columnSeparatorWidth, itemSize, rowSeparatorHeight },
     } = config
 
-    const windowHeight = flatlistLayout.value.height
+    const inset = {
+      top: listLayout.value.pageY,
+      bottom: deviceHeight - listLayout.value.pageY - listLayout.value.height,
+      left: listLayout.value.pageX,
+      right: deviceWidth - listLayout.value.pageX - listLayout.value.width,
+    }
+
+    const windowHeight = listLayout.value.height
 
     const cellHeight = itemSize.height + rowSeparatorHeight
     const cellWidth = itemSize.width + columnSeparatorWidth
@@ -84,28 +74,27 @@ export const useDragSelect = (config: Config) => {
     const numItemsYAxis = Math.ceil(windowHeight / cellHeight)
     const numItemsXAxis = numColumns
 
-    const headerArea = headerHeight + safeArea.topInset
     // account for top padding
-    const topOffset = Math.max(0, headerArea - scrollOffset.value)
+    const topOffset = Math.max(0, inset.top - scrollOffset.value)
     const safeTopPanY = e.y - topOffset
+
     if (safeTopPanY < 0) return // panning in top padding
 
     // account for bottom padding
     const safeScrollableWindow = Math.max(
-      scrollContentHeight.value - windowHeight - safeArea.bottomInset,
+      scrollContentHeight.value - windowHeight - inset.bottom,
       0
     )
     const safeAreaPanY =
       scrollOffset.value >= safeScrollableWindow
-        ? Math.min(safeTopPanY, windowHeight - safeArea.bottomInset)
+        ? Math.min(safeTopPanY, windowHeight - inset.bottom)
         : safeTopPanY
     if (safeTopPanY !== safeAreaPanY) return // panning in bottom padding
 
-    // account for a row item being cut-off when scroll offset not 0
-    const headerHidden = scrollOffset.value >= headerArea
-    const breakpointYoffset = headerHidden
-      ? cellHeight -
-        ((scrollOffset.value - safeArea.topInset - headerHeight) % cellHeight)
+    // account for a row item being cut-off when scroll offset is not 0
+    const scrolledPastTopInset = scrollOffset.value >= inset.top
+    const breakpointYoffset = scrolledPastTopInset
+      ? cellHeight - ((scrollOffset.value - inset.top) % cellHeight)
       : 0
 
     let breakpointsY: Array<number> = [0]
@@ -149,8 +138,8 @@ export const useDragSelect = (config: Config) => {
     const withinY = safeAreaPanY >= lowY && safeAreaPanY <= highY
 
     if (withinY && withinX) {
-      const scrolledRows = headerHidden
-        ? Math.floor(Math.abs((headerArea - scrollOffset.value) / cellHeight))
+      const scrolledRows = scrolledPastTopInset
+        ? Math.floor(Math.abs((inset.top - scrollOffset.value) / cellHeight))
         : 0
       const rowBeginsAtIndex = scrolledRows * numColumns
 
@@ -167,11 +156,15 @@ export const useDragSelect = (config: Config) => {
         )
       }
 
+      const getId = (rec: Record<Key, string>) => rec[config.key]
+
       const itemIndex = getArrayIndexForDimensions(upperBoundY, upperBoundX)
 
       const getItemFromState = (index: number) => {
         const itemInState = data[index]
-        return itemInState ? itemMap.value.get(itemInState.id) : undefined
+        if (!itemInState) return undefined
+        const id = getId(itemInState)
+        return itemMap.value.get(id)
       }
 
       const item = getItemFromState(itemIndex)
@@ -198,25 +191,25 @@ export const useDragSelect = (config: Config) => {
       if (panTransitionFromIndex.value !== toIndex) {
         const selectItemAtIndex = (
           i: number,
-          mutateObj: Record<string, Item>
+          mutateObj: Record<string, ListItem>
         ) => {
           const curr = getItemFromState(i)
           if (curr) {
-            const existing = mutateObj[curr.id]
+            const existing = mutateObj[getId(curr)]
             if (!existing) {
-              mutateObj[curr.id] = curr
+              mutateObj[getId(curr)] = curr
             }
           }
         }
         const deselectItemAtIndex = (
           i: number,
-          mutateObj: Record<string, Item>
+          mutateObj: Record<string, ListItem>
         ) => {
           const curr = getItemFromState(i)
           if (curr) {
-            const existing = mutateObj[curr.id]
-            if (existing && existing.id !== selectedAxisName.value) {
-              delete mutateObj[curr.id]
+            const existing = mutateObj[getId(curr)]
+            if (existing && getId(existing) !== selectedAxisName.value) {
+              delete mutateObj[getId(curr)]
             }
           }
         }
@@ -224,10 +217,12 @@ export const useDragSelect = (config: Config) => {
         const fromIndex = panTransitionFromIndex.value
 
         const axisItem = selectedItems.value[selectedAxisName.value]
-        const axisIndex = data.findIndex((d) => d.id === axisItem?.id)
+        const axisIndex = data.findIndex(
+          (d) => getId(d) === axisItem?.[config.key]
+        )
 
-        const axisRow = Math.floor(axisIndex / config.list.numColumns) + 1
-        const toRow = Math.floor(itemIndex / config.list.numColumns) + 1
+        const axisRow = Math.floor(axisIndex / numColumns) + 1
+        const toRow = Math.floor(itemIndex / numColumns) + 1
 
         const afterAxisRow = toRow > axisRow
         const isAxisRow = toRow === axisRow
@@ -265,16 +260,19 @@ export const useDragSelect = (config: Config) => {
   }
 
   const { setActive: setFrameCbActive } = useFrameCallback(() => {
+    maybeMeasureListLayout()
+
     const { absoluteX, y } = panEvent.value
     if (
       typeof absoluteX !== "number" ||
       typeof y !== "number" ||
       !selectModeActive.value ||
-      !flatlistLayout.value
+      !listLayout.value
     ) {
       return
     }
-    const windowHeight = flatlistLayout.value.height
+
+    const windowHeight = listLayout.value.height
     const bottomThreshold = windowHeight * 0.85
     const topThreshold = windowHeight * 0.15
 
@@ -285,31 +283,33 @@ export const useDragSelect = (config: Config) => {
       const outputRange = [0, 8]
       const result = interpolate(y, inputRange, outputRange)
       const offset = scrollOffset.value + result
-      scrollTo(config.list.ref, 0, offset, false)
+      scrollTo(config.list.animatedRef, 0, offset, false)
     } else if (scrollOffset.value > 0 && y < topThreshold) {
       const inputRange = [topThreshold, 0]
       const outputRange = [0, 8]
       const result = interpolate(y, inputRange, outputRange)
       const offset = scrollOffset.value - result
-      scrollTo(config.list.ref, 0, offset, false)
+      scrollTo(config.list.animatedRef, 0, offset, false)
     }
   }, false)
 
-  const longPressOnStart = (id: string) => {
+  function longPressOnStart(id: string) {
     "worklet"
+    const getId = (rec: Record<Key, string>) => rec[config.key]
+
     const longPressed = itemMap.value.get(id)
     if (!longPressed) return
-    if (selectedItems.value[longPressed.id]) return
+    if (selectedItems.value[getId(longPressed)]) return
     const axis = { ...longPressed, isLongPressAxis: true }
-    selectedAxisName.value = axis.id
+    selectedAxisName.value = getId(axis)
     selectedItems.value = {
       ...selectedItems.value,
-      [longPressed.id]: axis,
+      [getId(longPressed)]: axis,
     }
     runOnJS(config.onItemSelected)(longPressed)
   }
 
-  const tapOnStart = (id: string) => {
+  function tapOnStart(id: string) {
     "worklet"
     const tapped = itemMap.value.get(id)
     if (!tapped) return
@@ -328,8 +328,8 @@ export const useDragSelect = (config: Config) => {
     }
   }
 
-  const panGesture = Gesture.Pan()
-    .activateAfterLongPress(config.gestures.longPressMinDurationMs)
+  const panHandler = Gesture.Pan()
+    .activateAfterLongPress(config.gestures.longPressDurationMs)
     .onStart(() => {
       runOnJS(setFrameCbActive)(true)
     })
@@ -344,38 +344,38 @@ export const useDragSelect = (config: Config) => {
       runOnJS(setFrameCbActive)(false)
     })
 
-  const createListItemGesture = (item: Item) => {
+  function createItemPressHandler(item: ListItem) {
     const tapGesture = Gesture.Tap()
-      .maxDuration(config.gestures.longPressMinDurationMs)
-      .onStart(() => tapOnStart(item.id))
+      .maxDuration(config.gestures.longPressDurationMs)
+      .onStart(() => tapOnStart(item[config.key]))
 
     const longPressGesture = Gesture.LongPress()
-      .minDuration(config.gestures.longPressMinDurationMs)
-      .onStart(() => longPressOnStart(item.id))
-      .simultaneousWithExternalGesture(panGesture)
+      .minDuration(config.gestures.longPressDurationMs)
+      .onStart(() => longPressOnStart(item[config.key]))
+      .simultaneousWithExternalGesture(panHandler)
 
     return Gesture.Simultaneous(tapGesture, longPressGesture)
   }
 
-  const scrollHandler = useAnimatedScrollHandler((event) => {
+  function handleScrollEvent(event: ReanimatedScrollEvent) {
+    "worklet"
     scrollOffset.value = event.contentOffset.y
     scrollContentHeight.value = event.contentSize.height
-  })
+  }
 
   function clearSelection() {
     selectedItems.value = {}
   }
 
-  function onListLayout(e: { nativeEvent: { layout: LayoutRectangle } }) {
-    flatlistLayout.value = e.nativeEvent.layout
-  }
-
   return {
-    panGesture,
-    createListItemGesture,
     clearSelection,
-    selectedItems,
-    onListLayout,
-    scrollHandler,
+    selectedItems: selectedItems as Readonly<{
+      value: Record<string, ListItem>
+    }>,
+    handleScrollEvent,
+    gestures: {
+      panHandler,
+      createItemPressHandler,
+    },
   }
 }
