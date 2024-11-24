@@ -64,12 +64,12 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
   )
 
   const panTransitionFromIndex = useSharedValue<number | null>(null)
-  const panEvent = useSharedValue({
-    y: null as number | null,
-    absoluteX: null as number | null,
-    translationX: null as number | null,
-    translationY: null as number | null,
-  })
+  const panEvent = useSharedValue<{
+    y: number
+    absoluteX: number
+    translationX: number
+    translationY: number
+  } | null>(null)
 
   const listLayout = useSharedValue<MeasuredDimensions | null>(null)
 
@@ -157,7 +157,7 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
       ? cellHeight - ((scrollOffset.value - inset.top) % cellHeight)
       : 0
 
-    const panningBackwardsY = (panEvent.value.translationY ?? 0) < 0
+    const panningBackwardsY = (panEvent.value?.translationY ?? 0) < 0
     let breakpointsY = Array.from({ length: numItemsYAxis }).map((_, index) => {
       if (panningBackwardsY) {
         // When panning from axis cell then upwards
@@ -170,7 +170,7 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
     }
     breakpointsY.unshift(0)
 
-    const panningBackwardsX = (panEvent.value.translationX ?? 0) < 0
+    const panningBackwardsX = (panEvent.value?.translationX ?? 0) < 0
     let breakpointsX = Array.from({ length: numItemsXAxis }).map((_, index) => {
       if (panningBackwardsX) {
         // When panning from axis cell then to the left
@@ -316,15 +316,10 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
   const { setActive: setFrameCbActive } = useFrameCallback(() => {
     maybeMeasureListLayout()
 
-    const { absoluteX, y } = panEvent.value
-    if (
-      typeof absoluteX !== "number" ||
-      typeof y !== "number" ||
-      !selectModeActive.value ||
-      !listLayout.value
-    ) {
+    if (!panEvent.value || !selectModeActive.value || !listLayout.value) {
       return
     }
+    const { absoluteX, y } = panEvent.value
 
     handleDragSelect({ absoluteX, y })
 
@@ -381,17 +376,16 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
       runOnJS(setFrameCbActive)(true)
     })
     .onUpdate((e) => {
-      panEvent.value.y = e.y
-      panEvent.value.absoluteX = e.absoluteX
-      panEvent.value.translationX = e.translationX
-      panEvent.value.translationY = e.translationY
+      panEvent.value = {
+        y: e.y,
+        absoluteX: e.absoluteX,
+        translationX: e.translationX,
+        translationY: e.translationY,
+      }
     })
     .onEnd(() => {
       panTransitionFromIndex.value = null
-      panEvent.value.y = null
-      panEvent.value.absoluteX = null
-      panEvent.value.translationX = null
-      panEvent.value.translationY = null
+      panEvent.value = null
       runOnJS(setFrameCbActive)(false)
     })
 
