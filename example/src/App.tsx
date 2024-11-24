@@ -1,7 +1,6 @@
 import { useDragSelect } from "@osamaqarem/react-native-drag-select"
 import {
   Dimensions,
-  FlatList,
   Pressable,
   StyleSheet,
   Text,
@@ -35,51 +34,52 @@ export default function App() {
   )
 }
 
-type Item = { id: string }
+type Item = {
+  id: string
+}
 
 const data: Array<Item> = Array.from({ length: 100 }, (_, i) => ({
   id: (i + 1).toString(),
 }))
 
+const ROW_GAP = 30
+const COL_GAP = 30
+const NUM_COL = 3
+
+const ITEM_WIDTH = (Dimensions.get("window").width - 60) / NUM_COL // 60 is 30 (COL_GAP) * 2 (NUM_COLUMNS - 1)
 const ITEM_HEIGHT = 100
-const ITEM_WIDTH = Dimensions.get("window").width / 2
 
 function List() {
   const { top: topInset } = useSafeAreaInsets()
 
-  const flatlist = useAnimatedRef<FlatList<Item>>()
+  const flatlist = useAnimatedRef<Animated.FlatList<Item>>()
 
-  const { gestures, handleScrollEvent, clearSelection, selectedItems } =
-    useDragSelect({
-      data,
-      key: "id",
-      list: {
-        numColumns: 2,
-        columnSeparatorWidth: 0,
-        rowSeparatorHeight: 0,
-        animatedRef: flatlist,
-        itemSize: { height: ITEM_HEIGHT, width: ITEM_WIDTH },
-      },
-      gestures: {
-        longPressDurationMs: 300,
-      },
-      onItemPress: (item) => {
-        console.log("onItemPress", item.id)
-      },
-      onItemSelected: (item) => {
-        console.log("onItemSelected", item.id)
-      },
-      onItemDeselected: (item) => {
-        console.log("onItemDeselected", item.id)
-      },
-    })
+  const { gestures, onScroll, selection } = useDragSelect({
+    data,
+    key: "id",
+    list: {
+      numColumns: NUM_COL,
+      columnSeparatorWidth: COL_GAP,
+      rowSeparatorHeight: ROW_GAP,
+      animatedRef: flatlist,
+      itemSize: { height: ITEM_HEIGHT, width: ITEM_WIDTH },
+    },
+    onItemPress: (item) => {
+      console.log("onItemPress", item.id)
+    },
+    onItemSelected: (item) => {
+      console.log("onItemSelected", item.id)
+    },
+    onItemDeselected: (item) => {
+      console.log("onItemDeselected", item.id)
+    },
+  })
 
-  const scrollHandler = useAnimatedScrollHandler(handleScrollEvent)
+  const scrollHandler = useAnimatedScrollHandler(onScroll)
 
   const animatedProps = useAnimatedProps(() => {
-    const count = Object.keys(selectedItems.value).length.toString()
     return {
-      text: count,
+      text: selection.size.value.toString(),
     } as TextInputProps
   })
 
@@ -89,8 +89,10 @@ function List() {
         <SafeAreaView style={styles.safeArea}>
           <Animated.FlatList<Item>
             style={styles.flatlist}
+            ItemSeparatorComponent={ItemSeparator}
+            columnWrapperStyle={styles.columnWrapper}
             data={data}
-            numColumns={2}
+            numColumns={NUM_COL}
             renderItem={({ item }) => (
               <Item
                 item={item}
@@ -106,7 +108,7 @@ function List() {
 
       <Pressable
         style={[styles.clearBtn, { top: topInset + 14 }]}
-        onPress={clearSelection}
+        onPress={selection.clear}
       >
         <AnimatedTextInput
           animatedProps={animatedProps}
@@ -118,6 +120,8 @@ function List() {
     </>
   )
 }
+
+const ItemSeparator = () => <View style={styles.itemSeparator} />
 
 function Item({
   item,
@@ -149,8 +153,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   flatlist: {
-    flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "salmon",
+  },
+  columnWrapper: {
+    justifyContent: "space-between",
   },
   item: {
     height: ITEM_HEIGHT,
@@ -160,6 +166,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "green",
+  },
+  itemSeparator: {
+    height: ROW_GAP,
   },
   clearBtn: {
     minWidth: 50,

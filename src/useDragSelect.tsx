@@ -4,6 +4,7 @@ import {
   interpolate,
   measure,
   runOnJS,
+  runOnUI,
   scrollTo,
   useDerivedValue,
   useFrameCallback,
@@ -13,16 +14,51 @@ import {
 import type { ReanimatedScrollEvent } from "react-native-reanimated/lib/typescript/hook/commonTypes"
 import type { Config } from "./types"
 
-export function useDragSelect<
-  ListItem extends Record<Key, string>,
-  Key extends keyof ListItem,
->(config: Config<ListItem, Key>) {
+export function useDragSelect<ListItem extends Record<string, unknown>>(
+  config: Config<ListItem>
+) {
+  const {
+    data,
+    key: keyPath,
+    onItemPress,
+    onItemSelected,
+    onItemDeselected,
+  } = config
+
+  const {
+    animatedRef,
+    numColumns,
+    rowSeparatorHeight,
+    columnSeparatorWidth,
+    itemSize: { height: itemHeight, width: itemWidth },
+  } = config.list
+
+  const {
+    enabled: longPressGestureEnabled = true,
+    minDurationMs: longPressMinDurationMs = 300,
+  } = config.longPressGesture ?? {}
+
+  const {
+    enabled: panScrollEnabled = true,
+    endThreshold: panScrollEndThreshold = 0.85,
+    startThreshold: panScrollStartThreshold = 0.15,
+    endMaxVelocity: panScrollEndMaxVelocity = 8,
+    startMaxVelocity: panScrollStartMaxVelocity = 8,
+  } = config.panScrollGesture ?? {}
+
+  function getId(item: ListItem) {
+    "worklet"
+    return getPropertyByPath(item, keyPath)
+  }
+
   const itemMap = useDerivedValue(
-    () => new Map(config.data.map((d) => [d[config.key] as string, d]))
+    () => new Map(data.map((d) => [getId(d) as string, d]))
   )
 
-  const selectedItems = useSharedValue<Record<string, ListItem>>({})
-  const selectedAxisName = useSharedValue("")
+  // Refactor to `Set` when well supported.
+  type ItemMap = Record<string, ListItem>
+  const selectedItems = useSharedValue<ItemMap>({})
+  const axisId = useSharedValue("")
   const selectModeActive = useDerivedValue(
     () => Object.keys(selectedItems.value).length > 0
   )
@@ -31,6 +67,8 @@ export function useDragSelect<
   const panEvent = useSharedValue({
     y: null as number | null,
     absoluteX: null as number | null,
+    translationX: null as number | null,
+    translationY: null as number | null,
   })
 
   const listLayout = useSharedValue<MeasuredDimensions | null>(null)
@@ -42,22 +80,44 @@ export function useDragSelect<
 
   function maybeMeasureListLayout() {
     "worklet"
-    // This is 'memoized' for now, but we likely need to support dynamic layouts.
     if (listLayout.value) return
-    listLayout.value = measure(config.list.animatedRef)
+    listLayout.value = measure(animatedRef)
     if (!listLayout.value) {
       throw new Error("Failed to measure layout: `measure` returned `null`")
     }
   }
 
+  function select(id: string) {
+    "worklet"
+    const item = itemMap.value.get(id)
+    if (!item) return
+    const inSelection = selectedItems.value[id]
+    if (inSelection) return
+    selectedItems.modify((state) => {
+      // @ts-expect-error `state` is generic
+      state[id] = item
+      return state
+    })
+    runOnJS(onItemSelected)(item)
+  }
+
+  function deselect(id: string) {
+    "worklet"
+    const item = selectedItems.value[id]
+    if (!item) return
+    selectedItems.modify((state) => {
+      delete state[id]
+      return state
+    })
+    runOnJS(onItemDeselected)(item)
+  }
+
   function handleDragSelect(e: { y: number; absoluteX: number }) {
     "worklet"
-    if (!selectModeActive.value || !listLayout.value || !config.data) return
-
-    const {
-      data,
-      list: { numColumns, columnSeparatorWidth, itemSize, rowSeparatorHeight },
-    } = config
+    if (!selectModeActive.value || !listLayout.value || !data) return
+    if (!axisId.value) {
+      throw new Error("handleDragSelect: axisId was not set.")
+    }
 
     const inset = {
       top: listLayout.value.pageY,
@@ -68,8 +128,8 @@ export function useDragSelect<
 
     const windowHeight = listLayout.value.height
 
-    const cellHeight = itemSize.height + rowSeparatorHeight
-    const cellWidth = itemSize.width + columnSeparatorWidth
+    const cellHeight = itemHeight + rowSeparatorHeight
+    const cellWidth = itemWidth + columnSeparatorWidth
 
     const numItemsYAxis = Math.ceil(windowHeight / cellHeight)
     const numItemsXAxis = numColumns
@@ -97,27 +157,35 @@ export function useDragSelect<
       ? cellHeight - ((scrollOffset.value - inset.top) % cellHeight)
       : 0
 
-    let breakpointsY: Array<number> = [0]
-    let breakpointsX: Array<number> = [0]
-    if (breakpointYoffset) breakpointsY.push(breakpointYoffset)
+    const panningBackwardsY = (panEvent.value.translationY ?? 0) < 0
+    let breakpointsY = Array.from({ length: numItemsYAxis }).map((_, index) => {
+      if (panningBackwardsY) {
+        // When panning from axis cell then upwards
+        return (index + 1) * cellHeight + breakpointYoffset - rowSeparatorHeight
+      }
+      return (index + 1) * cellHeight + breakpointYoffset
+    })
+    if (breakpointYoffset > 0) {
+      breakpointsY.unshift(breakpointYoffset)
+    }
+    breakpointsY.unshift(0)
 
-    Array(numItemsYAxis)
-      .fill(0)
-      .forEach((_, index) => {
-        breakpointsY.push((index + 1) * cellHeight + breakpointYoffset)
-      })
-    Array(numItemsXAxis)
-      .fill(0)
-      .forEach((_, index) => {
-        breakpointsX.push((index + 1) * cellWidth + columnSeparatorWidth)
-      })
+    const panningBackwardsX = (panEvent.value.translationX ?? 0) < 0
+    let breakpointsX = Array.from({ length: numItemsXAxis }).map((_, index) => {
+      if (panningBackwardsX) {
+        // When panning from axis cell then to the left
+        return (index + 1) * cellWidth - columnSeparatorWidth
+      }
+      return (index + 1) * cellWidth
+    })
+    breakpointsX.unshift(0)
 
-    const getValueBounds = (
+    const getBreakpointBoundsIndices = (
       value: number,
-      list: Array<number>
+      breakpoints: Array<number>
     ): [number, number] => {
       let idx = 0
-      for (const breakpoint of list) {
+      for (const breakpoint of breakpoints) {
         if (value >= breakpoint) {
           idx += 1
         } else {
@@ -127,12 +195,18 @@ export function useDragSelect<
       return [idx - 1, idx]
     }
 
-    let [lowerBoundY, upperBoundY] = getValueBounds(safeAreaPanY, breakpointsY)
-    let [lowerBoundX, upperBoundX] = getValueBounds(e.absoluteX, breakpointsX)
-    const lowY = breakpointsY[lowerBoundY] ?? -1
-    const highY = breakpointsY[upperBoundY] ?? -1
-    const lowX = breakpointsX[lowerBoundX] ?? -1
-    const highX = breakpointsX[upperBoundX] ?? -1
+    let [indexLowY, indexHighY] = getBreakpointBoundsIndices(
+      safeAreaPanY,
+      breakpointsY
+    )
+    let [indexLowX, indexHighX] = getBreakpointBoundsIndices(
+      e.absoluteX,
+      breakpointsX
+    )
+    const lowY = breakpointsY[indexLowY] ?? -1
+    const highY = breakpointsY[indexHighY] ?? -1
+    const lowX = breakpointsX[indexLowX] ?? -1
+    const highX = breakpointsX[indexHighX] ?? -1
 
     const withinX = e.absoluteX >= lowX && e.absoluteX <= highX
     const withinY = safeAreaPanY >= lowY && safeAreaPanY <= highY
@@ -143,10 +217,7 @@ export function useDragSelect<
         : 0
       const rowBeginsAtIndex = scrolledRows * numColumns
 
-      const getArrayIndexForDimensions = (
-        rowIndex: number,
-        colIndex: number
-      ) => {
+      const calculateIndex = (rowIndex: number, colIndex: number) => {
         const arraysStartAtZero = 1
         return (
           rowIndex * numColumns -
@@ -156,18 +227,16 @@ export function useDragSelect<
         )
       }
 
-      const getId = (rec: Record<Key, string>) => rec[config.key]
+      const itemIndex = calculateIndex(indexHighY, indexHighX)
 
-      const itemIndex = getArrayIndexForDimensions(upperBoundY, upperBoundX)
-
-      const getItemFromState = (index: number) => {
+      const itemAt = (index: number) => {
         const itemInState = data[index]
         if (!itemInState) return undefined
         const id = getId(itemInState)
         return itemMap.value.get(id)
       }
 
-      const item = getItemFromState(itemIndex)
+      const item = itemAt(itemIndex)
       if (!item) return
 
       if (panTransitionFromIndex.value === null) {
@@ -175,7 +244,7 @@ export function useDragSelect<
       }
 
       /**
-       * axis cell: the cell where the long-press starts.
+       * axis cell: the cell where the long-press occured.
        * next cell: the cell being entered
        * previous cell: the cell being left
        *
@@ -189,38 +258,26 @@ export function useDragSelect<
        */
       const toIndex = itemIndex
       if (panTransitionFromIndex.value !== toIndex) {
-        const selectItemAtIndex = (
-          i: number,
-          mutateObj: Record<string, ListItem>
-        ) => {
-          const curr = getItemFromState(i)
+        const selectItemAtIndex = (i: number) => {
+          const curr = itemAt(i)
           if (curr) {
-            const existing = mutateObj[getId(curr)]
-            if (!existing) {
-              mutateObj[getId(curr)] = curr
-            }
+            const currId = getId(curr)
+            select(currId)
           }
         }
-        const deselectItemAtIndex = (
-          i: number,
-          mutateObj: Record<string, ListItem>
-        ) => {
-          const curr = getItemFromState(i)
+        const deselectItemAtIndex = (i: number) => {
+          const curr = itemAt(i)
           if (curr) {
-            const existing = mutateObj[getId(curr)]
-            if (existing && getId(existing) !== selectedAxisName.value) {
-              delete mutateObj[getId(curr)]
-            }
+            const currId = getId(curr)
+            if (axisId.value === currId) return
+            deselect(currId)
           }
         }
 
         const fromIndex = panTransitionFromIndex.value
 
-        const axisItem = selectedItems.value[selectedAxisName.value]
-        const axisIndex = data.findIndex(
-          (d) => getId(d) === axisItem?.[config.key]
-        )
-
+        const axisItemId = axisId.value
+        const axisIndex = data.findIndex((d) => getId(d) === axisItemId)
         const axisRow = Math.floor(axisIndex / numColumns) + 1
         const toRow = Math.floor(itemIndex / numColumns) + 1
 
@@ -230,30 +287,27 @@ export function useDragSelect<
         const backwards = toIndex < fromIndex
         const forwards = toIndex > fromIndex
 
-        let nextSelectedItemsState = { ...selectedItems.value }
-
         if (axisRow) {
           if (forwards) {
             for (let i = fromIndex; i < toIndex; i++) {
-              deselectItemAtIndex(i, nextSelectedItemsState)
+              deselectItemAtIndex(i)
             }
           } else if (backwards) {
             for (let i = fromIndex; i > toIndex; i--) {
-              deselectItemAtIndex(i, nextSelectedItemsState)
+              deselectItemAtIndex(i)
             }
           }
         }
 
         if (afterAxisRow || (isAxisRow && forwards)) {
           for (let i = axisIndex; i <= toIndex; i++) {
-            selectItemAtIndex(i, nextSelectedItemsState)
+            selectItemAtIndex(i)
           }
         } else if (!afterAxisRow || (isAxisRow && backwards)) {
           for (let i = axisIndex; i >= toIndex; i--) {
-            selectItemAtIndex(i, nextSelectedItemsState)
+            selectItemAtIndex(i)
           }
         }
-        selectedItems.value = nextSelectedItemsState
       }
       panTransitionFromIndex.value = toIndex
     }
@@ -272,110 +326,149 @@ export function useDragSelect<
       return
     }
 
-    const windowHeight = listLayout.value.height
-    const bottomThreshold = windowHeight * 0.85
-    const topThreshold = windowHeight * 0.15
-
     handleDragSelect({ absoluteX, y })
 
-    if (y > bottomThreshold) {
-      const inputRange = [bottomThreshold, windowHeight]
-      const outputRange = [0, 8]
+    if (!panScrollEnabled) return
+    const windowHeight = listLayout.value.height
+    const endEdgeThreshold = windowHeight * panScrollEndThreshold
+    const startEdgeThreshold = windowHeight * panScrollStartThreshold
+
+    if (y > endEdgeThreshold) {
+      const inputRange = [endEdgeThreshold, windowHeight]
+      const outputRange = [0, panScrollEndMaxVelocity]
       const result = interpolate(y, inputRange, outputRange)
       const offset = scrollOffset.value + result
-      scrollTo(config.list.animatedRef, 0, offset, false)
-    } else if (scrollOffset.value > 0 && y < topThreshold) {
-      const inputRange = [topThreshold, 0]
-      const outputRange = [0, 8]
+      scrollTo(animatedRef, 0, offset, false)
+    } else if (scrollOffset.value > 0 && y < startEdgeThreshold) {
+      const inputRange = [startEdgeThreshold, 0]
+      const outputRange = [0, panScrollStartMaxVelocity]
       const result = interpolate(y, inputRange, outputRange)
       const offset = scrollOffset.value - result
-      scrollTo(config.list.animatedRef, 0, offset, false)
+      scrollTo(animatedRef, 0, offset, false)
     }
   }, false)
 
   function longPressOnStart(id: string) {
     "worklet"
-    const getId = (rec: Record<Key, string>) => rec[config.key]
-
     const longPressed = itemMap.value.get(id)
     if (!longPressed) return
-    if (selectedItems.value[getId(longPressed)]) return
-    const axis = { ...longPressed, isLongPressAxis: true }
-    selectedAxisName.value = getId(axis)
-    selectedItems.value = {
-      ...selectedItems.value,
-      [getId(longPressed)]: axis,
-    }
-    runOnJS(config.onItemSelected)(longPressed)
+    const inSelection = selectedItems.value[id]
+    if (inSelection) return
+    axisId.value = id
+    select(id)
   }
 
   function tapOnStart(id: string) {
     "worklet"
     const tapped = itemMap.value.get(id)
     if (!tapped) return
+
     if (selectModeActive.value) {
-      const item = selectedItems.value[id]
-      if (item) {
-        delete selectedItems.value[id]
-        selectedItems.value = { ...selectedItems.value }
-        runOnJS(config.onItemDeselected)(tapped)
+      const inSelection = selectedItems.value[id]
+      if (inSelection) {
+        deselect(id)
       } else {
-        selectedItems.value = { ...selectedItems.value, [id]: tapped }
-        runOnJS(config.onItemSelected)(tapped)
+        select(id)
       }
     } else {
-      runOnJS(config.onItemPress)(tapped)
+      runOnJS(onItemPress)(tapped)
     }
   }
 
   const panHandler = Gesture.Pan()
-    .activateAfterLongPress(config.gestures.longPressDurationMs)
+    .activateAfterLongPress(selectModeActive.value ? 0 : longPressMinDurationMs)
     .onStart(() => {
       runOnJS(setFrameCbActive)(true)
     })
     .onUpdate((e) => {
       panEvent.value.y = e.y
       panEvent.value.absoluteX = e.absoluteX
+      panEvent.value.translationX = e.translationX
+      panEvent.value.translationY = e.translationY
     })
     .onEnd(() => {
       panTransitionFromIndex.value = null
       panEvent.value.y = null
       panEvent.value.absoluteX = null
+      panEvent.value.translationX = null
+      panEvent.value.translationY = null
       runOnJS(setFrameCbActive)(false)
     })
 
   function createItemPressHandler(item: ListItem) {
     const tapGesture = Gesture.Tap()
-      .maxDuration(config.gestures.longPressDurationMs)
-      .onStart(() => tapOnStart(item[config.key]))
+      .maxDuration(longPressMinDurationMs)
+      .onStart(() => tapOnStart(getId(item)))
 
     const longPressGesture = Gesture.LongPress()
-      .minDuration(config.gestures.longPressDurationMs)
-      .onStart(() => longPressOnStart(item[config.key]))
+      .minDuration(longPressMinDurationMs)
+      .onStart(() => longPressOnStart(getId(item)))
       .simultaneousWithExternalGesture(panHandler)
+      .enabled(longPressGestureEnabled)
 
     return Gesture.Simultaneous(tapGesture, longPressGesture)
   }
 
-  function handleScrollEvent(event: ReanimatedScrollEvent) {
+  function onScroll(event: ReanimatedScrollEvent) {
     "worklet"
     scrollOffset.value = event.contentOffset.y
     scrollContentHeight.value = event.contentSize.height
   }
 
-  function clearSelection() {
-    selectedItems.value = {}
+  const selectionSize = useDerivedValue(() => {
+    return Object.keys(selectedItems.value).length
+  })
+
+  const selectionHas = (id: string) => {
+    return !!selectedItems.value[id]
+  }
+
+  const selectJS = (id: string) => {
+    runOnUI(select)(id)
+  }
+
+  const selectionClear = () => (selectedItems.value = {})
+
+  const deselectJS = (id: string) => {
+    if (!selectionHas(id)) return false
+    runOnUI(deselect)(id)
+    return true
   }
 
   return {
-    clearSelection,
-    selectedItems: selectedItems as Readonly<{
-      value: Record<string, ListItem>
-    }>,
-    handleScrollEvent,
+    onScroll,
     gestures: {
-      panHandler,
       createItemPressHandler,
+      panHandler,
+    },
+    selection: {
+      active: selectModeActive as ReadonlySharedValue<boolean>,
+      add: selectJS,
+      clear: selectionClear,
+      delete: deselectJS,
+      has: selectionHas,
+      size: selectionSize as ReadonlySharedValue<number>,
     },
   }
+}
+
+type ReadonlySharedValue<T> = Readonly<{
+  value: T
+  get: () => T
+}>
+
+function getPropertyByPath<T extends Record<string, unknown>>(
+  object: T,
+  path: string
+): string {
+  "worklet"
+  let keys = path.split(".")
+  let property: unknown
+  do {
+    const key = keys.shift()
+    if (key) {
+      property = object[key]
+    }
+  } while (keys.length !== 0)
+  return property as string
 }
