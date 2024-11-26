@@ -16,7 +16,8 @@ export interface Config<ListItem> {
   key: PropertyPaths<ListItem>
   list: {
     /**
-     * An [animated ref](https://docs.swmansion.com/react-native-reanimated/docs/core/useAnimatedRef) to the scrollable view where the items are rendered.
+     * An [animated ref](https://docs.swmansion.com/react-native-reanimated/docs/core/useAnimatedRef) to
+     * the scrollable view where the items are rendered.
      *
      * @example
      * // Full code omitted for brevity.
@@ -96,8 +97,9 @@ export interface Config<ListItem> {
     endMaxVelocity?: number
   }
   /**
-   * Invoked on the JS thread whenever an item is pressed.
-   * @param {ListItem} item - The item that was pressed.
+   * Invoked on the JS thread whenever an item is tapped, but not added to selection.
+   * Use this instead of an `onPress` prop on list items.
+   * @param {ListItem} item - The item that was tapped.
    */
   onItemPress: (item: ListItem) => void
   /**
