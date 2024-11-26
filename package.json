@@ -1,7 +1,7 @@
 {
   "name": "@osamaqarem/react-native-drag-select",
   "version": "0.1.0",
-  "description": "A utility for adding drag-select to React Native apps.",
+  "description": "A utility for creating a pan gesture that auto-selects items in a list, like your favorite gallery app.",
   "source": "./src/index.tsx",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
@@ -20,17 +20,6 @@
   "files": [
     "src",
     "lib",
-    "android",
-    "ios",
-    "cpp",
-    "*.podspec",
-    "react-native.config.json",
-    "!ios/build",
-    "!android/build",
-    "!android/gradle",
-    "!android/gradlew",
-    "!android/gradlew.bat",
-    "!android/local.properties",
     "!**/__tests__",
     "!**/__fixtures__",
     "!**/__mocks__",
@@ -45,10 +34,21 @@
     "prepare": "bob build",
     "release": "release-it"
   },
+  "engines": {
+    "node": ">=18"
+  },
   "keywords": [
     "react-native",
     "ios",
-    "android"
+    "android",
+    "drag",
+    "select",
+    "dragselect",
+    "drag-select",
+    "multiselect",
+    "multi-select",
+    "gesture",
+    "reanimated"
   ],
   "repository": {
     "type": "git",
@@ -100,14 +100,18 @@
   },
   "release-it": {
     "git": {
-      "commitMessage": "chore: release ${version}",
+      "commitMessage": "Release v${version}",
+      "requireBranch": "main",
+      "tag": true,
       "tagName": "v${version}"
     },
     "npm": {
       "publish": true
     },
     "github": {
-      "release": true
+      "release": true,
+      "autoGenerate": true,
+      "releaseName": "v${version}"
     }
   },
   "eslintConfig": {
