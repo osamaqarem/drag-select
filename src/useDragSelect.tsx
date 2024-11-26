@@ -421,7 +421,9 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
     runOnUI(select)(id)
   }
 
-  const selectionClear = () => (selectedItems.value = {})
+  const selectionClear = () => {
+    selectedItems.value = {}
+  }
 
   const deselectJS = (id: string) => {
     if (!selectionHas(id)) return false
