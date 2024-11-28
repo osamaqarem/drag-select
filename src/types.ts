@@ -31,8 +31,9 @@ export interface Config<ListItem> {
     animatedRef: AnimatedRef<any>
     /**
      * Number of columns in the list.
+     * @default 1
      */
-    numColumns: number
+    numColumns?: number
     /**
      * Amount of horizontal space between items.
      */

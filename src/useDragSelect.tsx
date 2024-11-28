@@ -27,7 +27,7 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
 
   const {
     animatedRef,
-    numColumns,
+    numColumns = 1,
     rowSeparatorHeight,
     columnSeparatorWidth,
     itemSize: { height: itemHeight, width: itemWidth },
