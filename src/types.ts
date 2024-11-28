@@ -1,4 +1,9 @@
+import type {
+  PanGesture,
+  SimultaneousGesture,
+} from "react-native-gesture-handler"
 import type { AnimatedRef } from "react-native-reanimated"
+import type { ReanimatedScrollEvent } from "react-native-reanimated/lib/typescript/hook/commonTypes"
 
 export interface Config<ListItem> {
   /**
@@ -9,7 +14,6 @@ export interface Config<ListItem> {
    * Key or path to key which uniquely identifies an item in the list.
    *
    * @example
-   * // Full code omitted for brevity.
    * const item = { id: "usr_123", name: "foo" }
    * useDragSelect({ key: "id" })
    */
@@ -20,7 +24,6 @@ export interface Config<ListItem> {
      * the scrollable view where the items are rendered.
      *
      * @example
-     * // Full code omitted for brevity.
      * const animatedRef = useAnimatedRef()
      * useDragSelect({ list: { animatedRef } })
      * return <Animated.FlatList ref={animatedRef} />
@@ -47,17 +50,17 @@ export interface Config<ListItem> {
     }
   }
   /**
-   * Configuration for the long press gesture.
-   * Used to enter 'select mode' by long pressing an item.
+   * Configuration for the long press gesture. Long pressing an item activates selection mode.
+   * When selection mode is active, tapping any item will add or remove it from selection.
    */
   longPressGesture?: {
     /**
-     * Whether long pressing to activate 'select mode' is enabled.
+     * Whether long pressing to activate selection mode is enabled.
      * @default true
      */
     enabled?: boolean
     /**
-     * The amount of time in milliseconds an item must be pressed before 'select mode' activates.
+     * The amount of time in milliseconds an item must be pressed before selection mode activates.
      * @default 300
      */
     minDurationMs?: number
@@ -98,21 +101,88 @@ export interface Config<ListItem> {
   }
   /**
    * Invoked on the JS thread whenever an item is tapped, but not added to selection.
-   * Use this instead of an `onPress` prop on list items.
-   * @param {ListItem} item - The item that was tapped.
+   * Use this callback to handle press events instead of wrapping items in a pressable component.
    */
   onItemPress: (item: ListItem) => void
   /**
    * Invoked on the JS thread whenever an item is added to selection.
-   * @param {ListItem} item - The item that was selected.
    */
   onItemSelected: (item: ListItem) => void
   /**
    * Invoked on the JS thread whenever an item is removed from selection.
-   * @param {ListItem} item - The item that was deselected.
    */
   onItemDeselected: (item: ListItem) => void
 }
+
+export interface DragSelect<ListItem> {
+  /**
+   * Must be passed to the animated list to use the pan-scroll gesture. Used to obtain scroll offset and list window size.
+   */
+  onScroll: (event: ReanimatedScrollEvent) => void
+  gestures: {
+    /**
+     * This is a composed [tap](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture) & [long-press](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/long-press-gesture) gesture.
+     * Note that the long press gesture can be disabled by setting `config.longPressGesture.enabled` to `false`.
+     *
+     * @see {@link Config.longPressGesture}
+     */
+    createItemPressHandler: (item: ListItem) => SimultaneousGesture
+    /**
+     * This is a single [pan gesture](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/pan-gesture).
+     * If you need to rely solely on pressing items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`.
+     *
+     * @see {@link Config.panScrollGesture}
+     */
+    panHandler: PanGesture
+  }
+  selection: {
+    /**
+     * Whether the selection mode is active.
+     *
+     * When active, tapping list items will add them or remove them from selection.
+     * Config callbacks {@link Config.onItemSelected} and {@link Config.onItemDeselected} will be invoked instead of {@link Config.onItemPress}.
+     */
+    active: ReadonlySharedValue<boolean>
+    /**
+     * Add an item to selection. When there are no selected items, adding a single item to selection activates selection mode.
+     *
+     * Must be invoked on the JS thread.
+     * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+     */
+    add: (id: string) => void
+    /**
+     * Clear all selected items. Clearing selected items automatically deactivates selection mode.
+     *
+     * Must be invoked on the JS thread.
+     * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+     */
+    clear: () => void
+    /**
+     * Remove an item from selection.
+     * When the last item is removed from selection, selection mode is deactivated.
+     *
+     * Must be invoked on the JS thread.
+     * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+     */
+    delete: (id: string) => void
+    /**
+     * Indicates whether an item is selected.
+     *
+     * Must be invoked on the JS thread.
+     * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+     */
+    has: (id: string) => boolean
+    /**
+     * Count of currently selected items.
+     */
+    size: ReadonlySharedValue<number>
+  }
+}
+
+type ReadonlySharedValue<T> = Readonly<{
+  value: T
+  get: () => T
+}>
 
 type PropertyPaths<ListItem> =
   ListItem extends Record<string, unknown>

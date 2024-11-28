@@ -1,2 +1,2 @@
 export { useDragSelect } from "./useDragSelect"
-export { type Config } from "./types"
+export { type Config, type DragSelect } from "./types"

@@ -4,7 +4,7 @@
 
 A utility for creating a pan gesture that auto-selects items in a list, like your favorite gallery app.
 
-- Android & iOS
+- Supports Android & iOS
 - Handles scrolling
 - Super performant
 - Flexible API
@@ -14,18 +14,22 @@ A utility for creating a pan gesture that auto-selects items in a list, like you
 > This package is in public alpha. API breaking changes may occur until v1.0.0
 >
 > <strong>Feedback wanted!</strong><br/>
-> Is your use case [not supported?](#currently-not-supported) Something not working as expected? Please submit an issue if no similar issue exists.
+> If your use case is [not supported](#currently-not-supported) or something is not working as expected, I'd want to hear from you.<br/>Please check the issues tab for similar feedback or submit a new issue.
 
 ## Table of Contents
 
-- [Quick Start](#quick-start)
+- [Usage](#usage)
 - [Installation](#installation)
 - [API](#api)
 - [Recipes](#recipes)
 - [Currently Not Supported](#currently-not-supported)
 - [Development](#development)
 
-## Quick Start
+## Usage
+
+`useDragSelect` is a utility hook. It works by taking in parameters describing the UI of your list and returns managed gestures.
+
+It's important to specify list config parameters correctly as item size and location is never measured internally.
 
 ```tsx
 import { useDragSelect } from "@osamaqarem/react-native-drag-select"
@@ -45,9 +49,8 @@ function List() {
     data,
     key: "id",
     list: {
-      numColumns: 1,
       columnSeparatorWidth: 0,
-      rowSeparatorHeight: 0,
+      rowSeparatorHeight: 30,
       animatedRef: flatlist,
       itemSize: { height: 50, width: 50 },
     },
@@ -59,9 +62,8 @@ function List() {
     <GestureDetector gesture={gestures.panHandler}>
       <Animated.FlatList
         data={data}
-        numColumns={1}
+        ItemSeparatorComponent={<View style={{ height: 30 }} />}
         onScroll={scrollHandler}
-        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <GestureDetector gesture={gestures.createItemPressHandler(item)}>
             <View style={{ width: 50, height: 50 }}>
@@ -77,7 +79,8 @@ function List() {
 
 ## Installation
 
-This package requires [Reanimated v3](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started/#installation) and [Gesture Handler v2](https://docs.swmansion.com/react-native-gesture-handler/docs/fundamentals/installation/).
+> [!IMPORTANT]
+> This package requires [Reanimated v3](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started/#installation) and [Gesture Handler v2](https://docs.swmansion.com/react-native-gesture-handler/docs/fundamentals/installation/).
 
 ```sh
 npm install @osamaqarem/react-native-drag-select
@@ -97,16 +100,12 @@ pnpm add @osamaqarem/react-native-drag-select
 import { useDragSelect } from "@osamaqarem/react-native-drag-select"
 ```
 
-### Hooks
-
-Provide configuration to `useDragSelect` describing the UI of your list. This config is used to calculate a virtual representation of the items on screen.
-
-#### `useDragSelect(config)`
+### `useDragSelect(config: Config): DragSelect`
 
 <details>
 <summary>
 
-##### `config` _(click to expand)_
+### `Config`
 
 </summary>
 
@@ -120,7 +119,6 @@ interface Config<ListItem> {
    * Key or path to key which uniquely identifies an item in the list.
    *
    * @example
-   * // Full code omitted for brevity.
    * const item = { id: "usr_123", name: "foo" }
    * useDragSelect({ key: "id" })
    */
@@ -131,7 +129,6 @@ interface Config<ListItem> {
      * the scrollable view where the items are rendered.
      *
      * @example
-     * // Full code omitted for brevity.
      * const animatedRef = useAnimatedRef()
      * useDragSelect({ list: { animatedRef } })
      * return <Animated.FlatList ref={animatedRef} />
@@ -139,8 +136,9 @@ interface Config<ListItem> {
     animatedRef: AnimatedRef<any>
     /**
      * Number of columns in the list.
+     * @default 1
      */
-    numColumns: number
+    numColumns?: number
     /**
      * Amount of horizontal space between items.
      */
@@ -158,17 +156,17 @@ interface Config<ListItem> {
     }
   }
   /**
-   * Configuration for the long press gesture.
-   * Used to enter 'select mode' by long pressing an item.
+   * Configuration for the long press gesture. Long pressing an item activates selection mode.
+   * When selection mode is active, tapping any item will add or remove it from selection.
    */
   longPressGesture?: {
     /**
-     * Whether long pressing to activate 'select mode' is enabled.
+     * Whether long pressing to activate selection mode is enabled.
      * @default true
      */
     enabled?: boolean
     /**
-     * The amount of time in milliseconds an item must be pressed before 'select mode' activates.
+     * The amount of time in milliseconds an item must be pressed before selection mode activates.
      * @default 300
      */
     minDurationMs?: number
@@ -209,18 +207,15 @@ interface Config<ListItem> {
   }
   /**
    * Invoked on the JS thread whenever an item is tapped, but not added to selection.
-   * Use this instead of an `onPress` prop on list items.
-   * @param {ListItem} item - The item that was tapped.
+   * Use this callback to handle press events instead of wrapping items in a pressable component.
    */
   onItemPress: (item: ListItem) => void
   /**
    * Invoked on the JS thread whenever an item is added to selection.
-   * @param {ListItem} item - The item that was selected.
    */
   onItemSelected: (item: ListItem) => void
   /**
    * Invoked on the JS thread whenever an item is removed from selection.
-   * @param {ListItem} item - The item that was deselected.
    */
   onItemDeselected: (item: ListItem) => void
 }
@@ -228,68 +223,81 @@ interface Config<ListItem> {
 
 </details>
 
-#### Returns `{ selection, gestures, onScroll }`
+<details>
+<summary>
 
-##### `selection`
+### `DragSelect`
+
+</summary>
 
 ```ts
-interface Selection {
-  active: Readonly<SharedValue<boolean>>
-  add: (id: string) => void
-  clear: () => void
-  delete: (id: string) => boolean
-  has: (id: string) => boolean
-  size: Readonly<SharedValue<number>>
+interface DragSelect<ListItem> {
+  /**
+   * Must be passed to the animated list to use the pan-scroll gesture. Used to obtain scroll offset and list window size.
+   */
+  onScroll: (event: ReanimatedScrollEvent) => void
+  gestures: {
+    /**
+     * This is a composed [tap](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture) & [long-press](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/long-press-gesture) gesture.
+     * Note that the long press gesture can be disabled by setting `config.longPressGesture.enabled` to `false`.
+     *
+     * @see {@link Config.longPressGesture}
+     */
+    createItemPressHandler: (item: ListItem) => SimultaneousGesture
+    /**
+     * This is a single [pan gesture](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/pan-gesture).
+     * If you need to rely solely on pressing items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`.
+     *
+     * @see {@link Config.panScrollGesture}
+     */
+    panHandler: PanGesture
+  }
+  selection: {
+    /**
+     * Whether the selection mode is active.
+     *
+     * When active, tapping list items will add them or remove them from selection.
+     * Config callbacks {@link Config.onItemSelected} and {@link Config.onItemDeselected} will be invoked instead of {@link Config.onItemPress}.
+     */
+    active: ReadonlySharedValue<boolean>
+    /**
+     * Add an item to selection. When there are no selected items, adding a single item to selection activates selection mode.
+     *
+     * Must be invoked on the JS thread.
+     * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+     */
+    add: (id: string) => void
+    /**
+     * Clear all selected items. Clearing selected items automatically deactivates selection mode.
+     *
+     * Must be invoked on the JS thread.
+     * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+     */
+    clear: () => void
+    /**
+     * Remove an item from selection.
+     * When the last item is removed from selection, selection mode is deactivated.
+     *
+     * Must be invoked on the JS thread.
+     * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+     */
+    delete: (id: string) => void
+    /**
+     * Indicates whether an item is selected.
+     *
+     * Must be invoked on the JS thread.
+     * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+     */
+    has: (id: string) => boolean
+    /**
+     * Count of currently selected items.
+     */
+    size: ReadonlySharedValue<number>
+  }
 }
 ```
 
-An imperative API to manage selection state. Methods must be invoked from the JS thread.
-
-##### `gestures.panHandler`
-
-```tsx
-<GestureDetector gesture={gestures.panHandler}>
-  <Animated.FlatList />
-</GestureDetector>
-```
-
-This is a single [pan gesture](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/pan-gesture). If you prefer to rely on tapping items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`.
-
-##### `gestures.createItemPressHandler`
-
-```tsx
-<Animated.FlatList
-  renderItem={({ item }) => {
-    return (
-      <GestureDetector gesture={gestures.createItemPressHandler(item)}>
-        <View style={styles.item}>
-          <Text>{item.id}</Text>
-        </View>
-      </GestureDetector>
-    )
-  }}
-/>
-```
-
-This is a composed [tap](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture) & [long-press](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/long-press-gesture) gesture. Note that the long press gesture can be disabled by setting `config.longPressGesture.enabled` to `false`.
-
-> [!NOTE]
-> You can still [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/gesture#gesturesimultaneousgesture1-gesture2-gesture3--composedgesture) with your own gestures freely.
->
-> ```ts
-> const gesture = gestures.createItemPressHandler(item)
-> const tapGesture = Gesture.Tap()
-> const composed = Gesture.Simultaneous(gesture, tapGesture)
-> ```
-
-##### `onScroll`
-
-```tsx
-const scrollHandler = useAnimatedScrollHandler(onScroll)
-return <Animated.FlatList onScroll={scrollHandler} />
-```
-
-Must be passed to the animated list to use the pan-scroll gesture. Used to obtain scroll offset and list window size.
+</details>
 
 ## Recipes
 

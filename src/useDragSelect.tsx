@@ -12,11 +12,11 @@ import {
   type MeasuredDimensions,
 } from "react-native-reanimated"
 import type { ReanimatedScrollEvent } from "react-native-reanimated/lib/typescript/hook/commonTypes"
-import type { Config } from "./types"
+import type { Config, DragSelect } from "./types"
 
 export function useDragSelect<ListItem extends Record<string, unknown>>(
   config: Config<ListItem>
-) {
+): DragSelect<ListItem> {
   const {
     data,
     key: keyPath,
@@ -438,20 +438,15 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
       panHandler,
     },
     selection: {
-      active: selectModeActive as ReadonlySharedValue<boolean>,
+      active: selectModeActive,
       add: selectJS,
       clear: selectionClear,
       delete: deselectJS,
       has: selectionHas,
-      size: selectionSize as ReadonlySharedValue<number>,
+      size: selectionSize,
     },
   }
 }
-
-type ReadonlySharedValue<T> = Readonly<{
-  value: T
-  get: () => T
-}>
 
 function getPropertyByPath<T extends Record<string, unknown>>(
   object: T,
