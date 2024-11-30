@@ -27,6 +27,7 @@
   ],
   "scripts": {
     "example": "pnpm --filter=example",
+    "dev": "pnpm --filter=dev",
     "test": "jest",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
@@ -94,8 +95,9 @@
   "jest": {
     "preset": "react-native",
     "modulePathIgnorePatterns": [
-      "<rootDir>/example/node_modules",
-      "<rootDir>/lib/"
+      "<rootDir>/lib/",
+      "<rootDir>/example/",
+      "<rootDir>/dev/"
     ]
   },
   "release-it": {
