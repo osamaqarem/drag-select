@@ -52,10 +52,10 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
   }
 
   const itemMap = useDerivedValue(
+    // note: `data` copied to UI thread.
     () => new Map(data.map((d) => [getId(d) as string, d]))
   )
 
-  // Refactor to `Set` when well supported.
   type ItemMap = Record<string, ListItem>
   const selectedItems = useSharedValue<ItemMap>({})
   const axisId = useSharedValue("")
@@ -230,6 +230,7 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
       const itemIndex = calculateIndex(indexHighY, indexHighX)
 
       const itemAt = (index: number) => {
+        // note: `data` copied to UI thread.
         const itemInState = data[index]
         if (!itemInState) return undefined
         const id = getId(itemInState)
@@ -277,33 +278,28 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
         const fromIndex = panTransitionFromIndex.value
 
         const axisItemId = axisId.value
+        // note: `data` copied to UI thread.
         const axisIndex = data.findIndex((d) => getId(d) === axisItemId)
         const axisRow = Math.floor(axisIndex / numColumns) + 1
         const toRow = Math.floor(itemIndex / numColumns) + 1
 
-        const afterAxisRow = toRow > axisRow
         const isAxisRow = toRow === axisRow
+        const afterAxisRow = toRow > axisRow
+        const beforeAxisRow = toRow < axisRow
 
         const backwards = toIndex < fromIndex
         const forwards = toIndex > fromIndex
 
-        if (axisRow) {
-          if (forwards) {
-            for (let i = fromIndex; i < toIndex; i++) {
-              deselectItemAtIndex(i)
-            }
-          } else if (backwards) {
-            for (let i = fromIndex; i > toIndex; i--) {
-              deselectItemAtIndex(i)
-            }
+        if (backwards) {
+          for (let i = fromIndex; i > toIndex; i--) {
+            deselectItemAtIndex(i)
           }
         }
-
         if (afterAxisRow || (isAxisRow && forwards)) {
           for (let i = axisIndex; i <= toIndex; i++) {
             selectItemAtIndex(i)
           }
-        } else if (!afterAxisRow || (isAxisRow && backwards)) {
+        } else if (beforeAxisRow || (isAxisRow && backwards)) {
           for (let i = axisIndex; i >= toIndex; i--) {
             selectItemAtIndex(i)
           }
