@@ -84,11 +84,10 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
 
   const { width: deviceWidth, height: deviceHeight } = useWindowDimensions()
 
-  function maybeMeasureListLayout() {
+  function measureListLayout() {
     "worklet"
-    if (listLayout.value) return
     listLayout.value = measure(animatedRef)
-    if (!listLayout.value) {
+    if (!listLayout.value && __DEV__) {
       throw new Error("Failed to measure layout: `measure` returned `null`")
     }
   }
@@ -121,7 +120,7 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
   function handleDragSelect(e: { y: number; absoluteX: number }) {
     "worklet"
     if (!selectModeActive.value || !listLayout.value || !data) return
-    if (!axisId.value) {
+    if (!axisId.value && __DEV__) {
       throw new Error("handleDragSelect: axisId was not set.")
     }
 
@@ -316,8 +315,6 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
   }
 
   const { setActive: setFrameCbActive } = useFrameCallback(() => {
-    maybeMeasureListLayout()
-
     if (!panEvent.value || !selectModeActive.value || !listLayout.value) {
       return
     }
@@ -375,6 +372,7 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
   const panHandler = Gesture.Pan()
     .activateAfterLongPress(selectModeActive.value ? 0 : longPressMinDurationMs)
     .onStart(() => {
+      measureListLayout()
       runOnJS(setFrameCbActive)(true)
     })
     .onUpdate((e) => {
