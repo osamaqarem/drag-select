@@ -1,4 +1,4 @@
-import { useWindowDimensions } from "react-native"
+import { Platform, useWindowDimensions } from "react-native"
 import { Gesture } from "react-native-gesture-handler"
 import {
   interpolate,
@@ -42,8 +42,14 @@ export function useDragSelect<ListItem extends Record<string, unknown>>(
     enabled: panScrollEnabled = true,
     endThreshold: panScrollEndThreshold = 0.85,
     startThreshold: panScrollStartThreshold = 0.15,
-    endMaxVelocity: panScrollEndMaxVelocity = 8,
-    startMaxVelocity: panScrollStartMaxVelocity = 8,
+    endMaxVelocity: panScrollEndMaxVelocity = Platform.select({
+      default: 8,
+      android: 1,
+    }),
+    startMaxVelocity: panScrollStartMaxVelocity = Platform.select({
+      default: 8,
+      android: 1,
+    }),
   } = config.panScrollGesture ?? {}
 
   function getId(item: ListItem) {

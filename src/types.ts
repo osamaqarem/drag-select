@@ -90,13 +90,17 @@ export interface Config<ListItem> {
     /**
      * The maximum scrolling speed when the pointer is near the starting edge of the list window.
      * Must be higher than 0.
-     * @default 8
+     * @default
+     *  - 8 on iOS
+     *  - 1 on Android
      */
     startMaxVelocity?: number
     /**
      * The maximum scrolling speed when the pointer is at the ending edge of the list window.
      * Must be higher than 0.
-     * @default 8
+     * @default
+     *  - 8 on iOS
+     *  - 1 on Android
      */
     endMaxVelocity?: number
   }
@@ -117,22 +121,27 @@ export interface Config<ListItem> {
 
 export interface DragSelect<ListItem> {
   /**
-   * Must be passed to the animated list to use the pan-scroll gesture. Used to obtain scroll offset and list window size.
+   * Must be passed to the animated list to use the pan-scroll gesture.
+   * Used to obtain scroll offset and list window size.
    */
   onScroll: (event: ReanimatedScrollEvent) => void
   gestures: {
     /**
-     * This is a composed [tap](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture) & [long-press](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/long-press-gesture) gesture.
-     * Note that the long press gesture can be disabled by setting `config.longPressGesture.enabled` to `false`.
+     * This is a composed [tap](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture) and
+     * [long-press](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/long-press-gesture) gesture.
+     * Note that the long press gesture can be disabled by setting `config.longPressGesture.enabled` to `false`. See {@link Config.longPressGesture}.
      *
-     * @see {@link Config.longPressGesture}
+     * Do not customize the behavior of this gesture directly.
+     * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own custom gestures.
+     *
      */
     createItemPressHandler: (item: ListItem) => SimultaneousGesture
     /**
      * This is a single [pan gesture](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/pan-gesture).
-     * If you need to rely solely on pressing items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`.
+     * If you need to rely solely on pressing items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`. See {@link Config.panScrollGesture}.
      *
-     * @see {@link Config.panScrollGesture}
+     * Do not customize the behavior of this gesture directly.
+     * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own custom gestures.
      */
     panHandler: PanGesture
   }
