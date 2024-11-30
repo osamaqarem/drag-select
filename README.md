@@ -314,23 +314,23 @@ TODO
 
 ## Performance
 
-### Cost
+This utility is not inherently expensive. It works by doing some math for every frame while panning the list. Performance cost comes from the additional logic added in response to changes in selection. If you're finding that this is not the case, please submit an issue with details/reproduction and I'm happy to take a look.
 
-This utility is not inherently expensive. It works by doing some math for each frame when panning over the list.
-Performance cost comes from the extra logic in response to changes in selection. Try to be moderate in list item animations on selection change.
+> [!TIP]
+> Try to be conservative in list item animations on selection change.
 
-### Higher FPS Displays
+### +60Hz Displays
 
-I've only tested this utility on a 60Hz display, so I'm unsure of how it performs on devices that render more frames per second. How often the drag-to-select calcuation occurs is once per frame, so the more frames per second are rendered, the more times this utility is executed. If the perceived responsiveness when executing this utility 60 times a second on a 120Hz display is the same as executing it 120 times, then there's an optimization to be made.
+Drag-to-select calcuations happen once per frame. The more frames are rendered each second, the more often that calculation occurs. If the perceived responsiveness when executing this utility 60 times/sec instead of 120 times/sec for a 120Hz display, then this could be optimized.
 
 ## Currently Not Supported
 
-- Lists with dynamic item size
 - Horizontal lists
 - Inverted lists
+- Lists with dynamic item size
 - Section lists
 
-Inverted & horizontal lists would be easy to support, so do voice that if you need it. Lists with irregular item size would be more tricky, but I'm not sure drag-to-select makes sense there anyway.
+Most would be easy to support, except lists with dynamic item size. I'm not sure drag-to-select would make sense there anyway.
 
 
 ## Development
