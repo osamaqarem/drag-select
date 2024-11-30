@@ -10,7 +10,6 @@ import {
 } from "react-native"
 import {
   GestureDetector,
-  GestureHandlerRootView,
   type SimultaneousGesture,
 } from "react-native-gesture-handler"
 import Animated, {
@@ -18,21 +17,7 @@ import Animated, {
   useAnimatedRef,
   useAnimatedScrollHandler,
 } from "react-native-reanimated"
-import {
-  SafeAreaProvider,
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context"
-
-export default function App() {
-  return (
-    <SafeAreaProvider>
-      <GestureHandlerRootView style={styles.gestureHandlerRootView}>
-        <List />
-      </GestureHandlerRootView>
-    </SafeAreaProvider>
-  )
-}
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 type Item = {
   id: string
@@ -49,7 +34,7 @@ const NUM_COL = 3
 const ITEM_WIDTH = (Dimensions.get("window").width - 60) / NUM_COL // 60 is 30 (COL_GAP) * 2 (NUM_COLUMNS - 1)
 const ITEM_HEIGHT = 100
 
-function List() {
+export default function List() {
   const { top: topInset } = useSafeAreaInsets()
 
   const flatlist = useAnimatedRef<Animated.FlatList<Item>>()
@@ -144,9 +129,6 @@ function Item({
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput)
 
 const styles = StyleSheet.create({
-  gestureHandlerRootView: {
-    flex: 1,
-  },
   safeArea: {
     flex: 1,
     backgroundColor: "pink",
