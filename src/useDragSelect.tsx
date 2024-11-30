@@ -14,7 +14,7 @@ import {
 import type { ReanimatedScrollEvent } from "react-native-reanimated/lib/typescript/hook/commonTypes"
 import type { Config, DragSelect } from "./types"
 
-export function useDragSelect<ListItem extends Record<string, unknown>>(
+export function useDragSelect<ListItem extends Record<string, any>>(
   config: Config<ListItem>
 ): DragSelect<ListItem> {
   const {

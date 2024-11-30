@@ -195,7 +195,7 @@ type ReadonlySharedValue<T> = Readonly<{
 }>
 
 type PropertyPaths<ListItem> =
-  ListItem extends Record<string, unknown>
+  ListItem extends Record<string, any>
     ? {
         [Key in keyof ListItem]: Key extends string // Only allow `string` keys.
           ? ListItem[Key] extends string | number // Only allow keys which map to a `string` or `number` value.
