@@ -27,18 +27,18 @@ A utility for creating a pan gesture that auto-selects items in a list, like you
 
 ## Usage
 
+This package is made with [Reanimated](https://docs.swmansion.com/react-native-reanimated) & [Gesture Handler](https://docs.swmansion.com/react-native-gesture-handler), and using it requires some familiarity.
+
 `useDragSelect` is a utility hook. It works by taking in parameters describing the UI of your list and returns managed gestures.
 
-It's important to specify list config parameters correctly as item size and location is never measured internally.
+It's important to specify list config parameters correctly as actual item size and location is never measured.
 
 ```tsx
 import { useDragSelect } from "@osamaqarem/react-native-drag-select"
+
 import { View, Text } from "react-native"
 import { GestureDetector } from "react-native-gesture-handler"
-import Animated, {
-  useAnimatedRef,
-  useAnimatedScrollHandler,
-} from "react-native-reanimated"
+import Animated, { useAnimatedRef, useAnimatedScrollHandler } from "react-native-reanimated"
 
 function List() {
   const data = [{ id: "usr_123", name: "foo" }]
@@ -56,7 +56,7 @@ function List() {
     },
   })
 
-  const scrollHandler = useAnimatedScrollHandler(onScroll)
+  const scrollHandler = useAnimatedScrollHandler({ onScroll })
 
   return (
     <GestureDetector gesture={gestures.panHandler}>
@@ -195,13 +195,17 @@ interface Config<ListItem> {
     /**
      * The maximum scrolling speed when the pointer is near the starting edge of the list window.
      * Must be higher than 0.
-     * @default 8
+     * @default
+     *  - 8 on iOS
+     *  - 1 on Android
      */
     startMaxVelocity?: number
     /**
      * The maximum scrolling speed when the pointer is at the ending edge of the list window.
      * Must be higher than 0.
-     * @default 8
+     * @default
+     *  - 8 on iOS
+     *  - 1 on Android
      */
     endMaxVelocity?: number
   }
@@ -233,22 +237,27 @@ interface Config<ListItem> {
 ```ts
 interface DragSelect<ListItem> {
   /**
-   * Must be passed to the animated list to use the pan-scroll gesture. Used to obtain scroll offset and list window size.
+   * Must be passed to the animated list to use the pan-scroll gesture.
+   * Used to obtain scroll offset and list window size.
    */
   onScroll: (event: ReanimatedScrollEvent) => void
   gestures: {
     /**
-     * This is a composed [tap](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture) & [long-press](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/long-press-gesture) gesture.
-     * Note that the long press gesture can be disabled by setting `config.longPressGesture.enabled` to `false`.
+     * This is a composed [tap](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture) and
+     * [long-press](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/long-press-gesture) gesture.
+     * Note that the long press gesture can be disabled by setting `config.longPressGesture.enabled` to `false`. See {@link Config.longPressGesture}.
      *
-     * @see {@link Config.longPressGesture}
+     * Do not customize the behavior of this gesture directly.
+     * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own custom gestures.
+     *
      */
     createItemPressHandler: (item: ListItem) => SimultaneousGesture
     /**
      * This is a single [pan gesture](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/pan-gesture).
-     * If you need to rely solely on pressing items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`.
+     * If you need to rely solely on pressing items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`. See {@link Config.panScrollGesture}.
      *
-     * @see {@link Config.panScrollGesture}
+     * Do not customize the behavior of this gesture directly.
+     * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own custom gestures.
      */
     panHandler: PanGesture
   }
@@ -303,14 +312,26 @@ interface DragSelect<ListItem> {
 
 TODO
 
+## Performance
+
+### Cost
+
+This utility is not inherently expensive. It works by doing some math for each frame when panning over the list.
+Performance cost comes from the extra logic in response to changes in selection. Try to be moderate in list item animations on selection change.
+
+### Higher FPS Displays
+
+I've only tested this utility on a 60Hz display, so I'm unsure of how it performs on devices that render more frames per second. How often the drag-to-select calcuation occurs is once per frame, so the more frames per second are rendered, the more times this utility is executed. If the perceived responsiveness when executing this utility 60 times a second on a 120Hz display is the same as executing it 120 times, then there's an optimization to be made.
+
 ## Currently Not Supported
 
-- Lists with dynamic item size.
-- Horizontal lists.
-- Inverted lists.
-- Section lists.
+- Lists with dynamic item size
+- Horizontal lists
+- Inverted lists
+- Section lists
 
-Inverted & horizontal lists would be easy to support. Other types are much more tricky and might require API breaking changes.
+Inverted & horizontal lists would be easy to support, so do voice that if you need it. Lists with irregular item size would be more tricky, but I'm not sure drag-to-select makes sense there anyway.
+
 
 ## Development
 
@@ -321,4 +342,11 @@ pnpm install
 pnpm dev ios
 ```
 
-Made with [create-react-native-library](https://github.com/callstack/react-native-builder-bob)
+## Acknowledgements
+
+Consider supporting the following projects:
+
+- [Reanimated](https://github.com/software-mansion/react-native-reanimated), [Gesture Handler](https://github.com/software-mansion/react-native-gesture-handler)
+  - This package would not be possible otherwise.
+- [create-react-native-library](https://github.com/callstack/react-native-builder-bob)
+  - The CLI used for bootstrapping this project.
