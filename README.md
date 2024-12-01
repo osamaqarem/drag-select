@@ -116,7 +116,8 @@ interface Config<ListItem> {
    */
   data: Array<ListItem>
   /**
-   * Key or path to key which uniquely identifies an item in the list.
+   * Key or path to nested key which uniquely identifies an item in the list.
+   * Nested key path is specified using dot notation in a string e.g. `"user.id"`.
    *
    * @example
    * const item = { id: "usr_123", name: "foo" }
@@ -140,19 +141,29 @@ interface Config<ListItem> {
      */
     numColumns?: number
     /**
-     * Amount of horizontal space between items.
+     * Amount of horizontal space between rows.
      */
-    rowSeparatorHeight: number
+    rowGap: number
     /**
-     * Amount of vertical space between items.
+     * Amount of vertical space between columns.
      */
-    columnSeparatorWidth: number
+    columnGap: number
     /**
-     * The height and width of each item in the list.
+     * Height and width of each item in the list.
      */
     itemSize: {
       width: number
       height: number
+    }
+    /**
+     * Inner distance between edges of the list container and list items.
+     * Use this to account for list headers/footers and/or padding.
+     */
+    contentInset?: {
+      top?: number
+      bottom?: number
+      left?: number
+      right?: number
     }
   }
   /**
@@ -213,15 +224,15 @@ interface Config<ListItem> {
    * Invoked on the JS thread whenever an item is tapped, but not added to selection.
    * Use this callback to handle press events instead of wrapping items in a pressable component.
    */
-  onItemPress: (item: ListItem) => void
+  onItemPress?: (item: ListItem) => void
   /**
    * Invoked on the JS thread whenever an item is added to selection.
    */
-  onItemSelected: (item: ListItem) => void
+  onItemSelected?: (item: ListItem) => void
   /**
    * Invoked on the JS thread whenever an item is removed from selection.
    */
-  onItemDeselected: (item: ListItem) => void
+  onItemDeselected?: (item: ListItem) => void
 }
 ```
 
@@ -237,8 +248,14 @@ interface Config<ListItem> {
 ```ts
 interface DragSelect<ListItem> {
   /**
-   * Must be passed to the animated list to use the pan-scroll gesture.
+   * Must be used with [`useAnimatedScrollHandler`](https://docs.swmansion.com/react-native-reanimated/docs/scroll/useAnimatedScrollHandler)
+   * and passed to the animated list to use the pan-scroll gesture.
    * Used to obtain scroll offset and list window size.
+   *
+   * @example
+   * const { onScroll } = useDragSelect()
+   * const scrollHandler = useAnimatedScrollHandler(onScroll)
+   * return <Animated.FlatList onScroll={scrollHandler} />
    */
   onScroll: (event: ReanimatedScrollEvent) => void
   gestures: {

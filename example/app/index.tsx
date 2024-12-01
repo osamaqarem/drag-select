@@ -44,8 +44,8 @@ export default function List() {
     key: "id",
     list: {
       numColumns: NUM_COL,
-      columnSeparatorWidth: COL_GAP,
-      rowSeparatorHeight: ROW_GAP,
+      columnGap: COL_GAP,
+      rowGap: ROW_GAP,
       animatedRef: flatlist,
       itemSize: { height: ITEM_HEIGHT, width: ITEM_WIDTH },
     },

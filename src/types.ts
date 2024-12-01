@@ -36,19 +36,29 @@ export interface Config<ListItem> {
      */
     numColumns?: number
     /**
-     * Amount of horizontal space between items.
+     * Amount of horizontal space between rows.
      */
-    rowSeparatorHeight: number
+    rowGap: number
     /**
-     * Amount of vertical space between items.
+     * Amount of vertical space between columns.
      */
-    columnSeparatorWidth: number
+    columnGap: number
     /**
      * Height and width of each item in the list.
      */
     itemSize: {
       width: number
       height: number
+    }
+    /**
+     * Inner distance between edges of the list container and list items.
+     * Use this to account for list headers/footers and/or padding.
+     */
+    contentInset?: {
+      top?: number
+      bottom?: number
+      left?: number
+      right?: number
     }
   }
   /**
@@ -122,8 +132,14 @@ export interface Config<ListItem> {
 
 export interface DragSelect<ListItem> {
   /**
-   * Must be passed to the animated list to use the pan-scroll gesture.
+   * Must be used with [`useAnimatedScrollHandler`](https://docs.swmansion.com/react-native-reanimated/docs/scroll/useAnimatedScrollHandler)
+   * and passed to the animated list to use the pan-scroll gesture.
    * Used to obtain scroll offset and list window size.
+   *
+   * @example
+   * const { onScroll } = useDragSelect()
+   * const scrollHandler = useAnimatedScrollHandler(onScroll)
+   * return <Animated.FlatList onScroll={scrollHandler} />
    */
   onScroll: (event: ReanimatedScrollEvent) => void
   gestures: {

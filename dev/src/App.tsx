@@ -11,7 +11,6 @@ import {
 import {
   GestureDetector,
   GestureHandlerRootView,
-  type SimultaneousGesture,
 } from "react-native-gesture-handler"
 import Animated, {
   useAnimatedProps,
@@ -20,7 +19,6 @@ import Animated, {
 } from "react-native-reanimated"
 import {
   SafeAreaProvider,
-  SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context"
 
@@ -38,7 +36,7 @@ type Item = {
   id: string
 }
 
-const data: Array<Item> = Array.from({ length: 100 }, (_, i) => ({
+const data: Array<Item> = Array.from({ length: 20 }, (_, i) => ({
   id: (i + 1).toString(),
 }))
 
@@ -46,8 +44,14 @@ const ROW_GAP = 30
 const COL_GAP = 30
 const NUM_COL = 3
 
-const ITEM_WIDTH = (Dimensions.get("window").width - 60) / NUM_COL // 60 is 30 (COL_GAP) * 2 (NUM_COLUMNS - 1)
-const ITEM_HEIGHT = 100
+const { width: windowWidth } = Dimensions.get("window")
+const marginHorizontal = 50
+const paddingHorizontal = 25
+const paddingVertical = 100
+const listWidth = windowWidth - marginHorizontal * 2 - paddingHorizontal * 2
+
+const ITEM_WIDTH = (listWidth - COL_GAP * (NUM_COL - 1)) / NUM_COL
+const ITEM_HEIGHT = 80
 
 function List() {
   const { top: topInset } = useSafeAreaInsets()
@@ -59,10 +63,16 @@ function List() {
     key: "id",
     list: {
       numColumns: NUM_COL,
-      columnSeparatorWidth: COL_GAP,
-      rowSeparatorHeight: ROW_GAP,
+      columnGap: COL_GAP,
+      rowGap: ROW_GAP,
       animatedRef: flatlist,
       itemSize: { height: ITEM_HEIGHT, width: ITEM_WIDTH },
+      contentInset: {
+        top: paddingVertical,
+        bottom: paddingVertical,
+        left: paddingHorizontal,
+        right: paddingHorizontal,
+      },
     },
     onItemPress: (item) => {
       console.log("onItemPress", item.id)
@@ -86,24 +96,29 @@ function List() {
   return (
     <>
       <GestureDetector gesture={gestures.panHandler}>
-        <SafeAreaView style={styles.safeArea}>
-          <Animated.FlatList<Item>
-            style={styles.flatlist}
-            ItemSeparatorComponent={ItemSeparator}
-            columnWrapperStyle={styles.columnWrapper}
-            data={data}
-            numColumns={NUM_COL}
-            renderItem={({ item }) => (
-              <Item
-                item={item}
-                createGesture={gestures.createItemPressHandler}
-              />
-            )}
-            keyExtractor={(item) => item.id.toString()}
-            ref={flatlist}
-            onScroll={scrollHandler}
-          />
-        </SafeAreaView>
+        <Animated.FlatList<Item>
+          style={styles.flatlist}
+          contentContainerStyle={[
+            styles.flatlistContent,
+            {
+              paddingVertical,
+              paddingHorizontal,
+            },
+          ]}
+          data={data}
+          numColumns={NUM_COL}
+          columnWrapperStyle={styles.columnWrapper}
+          renderItem={({ item }) => (
+            <GestureDetector gesture={gestures.createItemPressHandler(item)}>
+              <View style={styles.item}>
+                <Text>{item.id}</Text>
+              </View>
+            </GestureDetector>
+          )}
+          keyExtractor={(item) => item.id.toString()}
+          ref={flatlist}
+          onScroll={scrollHandler}
+        />
       </GestureDetector>
 
       <Pressable
@@ -121,42 +136,24 @@ function List() {
   )
 }
 
-const ItemSeparator = () => <View style={styles.itemSeparator} />
-
-function Item({
-  item,
-  createGesture,
-}: {
-  item: Item
-  createGesture: (item: Item) => SimultaneousGesture
-}) {
-  const gesture = createGesture(item)
-
-  return (
-    <GestureDetector gesture={gesture}>
-      <View style={styles.item}>
-        <Text>{item.id}</Text>
-      </View>
-    </GestureDetector>
-  )
-}
-
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput)
 
 const styles = StyleSheet.create({
   gestureHandlerRootView: {
     flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-    backgroundColor: "pink",
-    justifyContent: "center",
+    backgroundColor: "black",
   },
   flatlist: {
+    marginVertical: 150,
+    marginHorizontal,
+    backgroundColor: "blue",
+  },
+  flatlistContent: {
     backgroundColor: "salmon",
+    rowGap: ROW_GAP,
   },
   columnWrapper: {
-    justifyContent: "space-between",
+    columnGap: COL_GAP,
   },
   item: {
     height: ITEM_HEIGHT,
@@ -166,9 +163,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "green",
-  },
-  itemSeparator: {
-    height: ROW_GAP,
   },
   clearBtn: {
     minWidth: 50,
