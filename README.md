@@ -8,10 +8,10 @@ A utility for creating a pan gesture that auto-selects items in a list, like you
 - Handles scrolling
 - Super performant
 - Flexible API
-- Works with typical scrollable views - tested with [`ScrollView`](https://reactnative.dev/docs/scrollview), [`FlatList`](https://reactnative.dev/docs/flatlist) and [`FlashList`](https://shopify.github.io/flash-list/).
+- Works with typical scrollable views - [`ScrollView`](https://reactnative.dev/docs/scrollview), [`FlatList`](https://reactnative.dev/docs/flatlist), [`FlashList`](https://shopify.github.io/flash-list/) etc.
 
 > [!IMPORTANT]
-> This package is in public alpha. API breaking changes may occur until v1.0.0
+> This package is in public alpha. Breaking changes may occur in any release until v1.0.0
 >
 > <strong>Feedback wanted!</strong><br/>
 > If your use case is [not supported](#currently-not-supported) or something is not working as expected, I'd want to hear from you.<br/>Please check the issues tab for similar feedback or submit a new issue.
@@ -314,14 +314,16 @@ TODO
 
 ## Performance
 
-This utility is not inherently expensive. It works by doing some math for every frame while panning the list. Performance cost comes from the additional logic added in response to changes in selection. If you're finding that this is not the case, please submit an issue with details/reproduction and I'm happy to take a look.
+Running this utility is not inherently expensive. It works by doing some math on every [frame update](https://docs.swmansion.com/react-native-reanimated/docs/advanced/useFrameCallback/) and only when panning the list. Performance cost comes from the additional logic added in response to changes in selection. If you're finding that this is not the case, please submit an issue with details/reproduction and I'm happy to take a look.
 
 > [!TIP]
 > Try to be conservative in list item animations on selection change.
 
 ### +60Hz Displays
 
-Drag-to-select calcuations happen once per frame. The more frames are rendered each second, the more often that calculation occurs. If the perceived responsiveness when executing this utility 60 times/sec instead of 120 times/sec for a 120Hz display is similar, then this could be something to optimize.
+Only tested on a 60Hz display.
+
+Drag-to-select calcuations happen once per frame. The more frames are rendered each second, the more often that calculation occurs. If the perceived responsiveness when executing this utility 60 times/sec on a 120Hz display the same as executing it 120 times/sec, then this could be something to optimize.
 
 ## Currently Not Supported
 

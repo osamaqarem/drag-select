@@ -11,7 +11,8 @@ export interface Config<ListItem> {
    */
   data: Array<ListItem>
   /**
-   * Key or path to key which uniquely identifies an item in the list.
+   * Key or path to nested key which uniquely identifies an item in the list.
+   * Nested key path is specified using dot notation in a string e.g. `"user.id"`.
    *
    * @example
    * const item = { id: "usr_123", name: "foo" }
@@ -43,7 +44,7 @@ export interface Config<ListItem> {
      */
     columnSeparatorWidth: number
     /**
-     * The height and width of each item in the list.
+     * Height and width of each item in the list.
      */
     itemSize: {
       width: number
@@ -108,15 +109,15 @@ export interface Config<ListItem> {
    * Invoked on the JS thread whenever an item is tapped, but not added to selection.
    * Use this callback to handle press events instead of wrapping items in a pressable component.
    */
-  onItemPress: (item: ListItem) => void
+  onItemPress?: (item: ListItem) => void
   /**
    * Invoked on the JS thread whenever an item is added to selection.
    */
-  onItemSelected: (item: ListItem) => void
+  onItemSelected?: (item: ListItem) => void
   /**
    * Invoked on the JS thread whenever an item is removed from selection.
    */
-  onItemDeselected: (item: ListItem) => void
+  onItemDeselected?: (item: ListItem) => void
 }
 
 export interface DragSelect<ListItem> {

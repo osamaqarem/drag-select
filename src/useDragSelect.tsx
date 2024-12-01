@@ -103,7 +103,7 @@ export function useDragSelect<ListItem extends Record<string, any>>(
       state[id] = item
       return state
     })
-    runOnJS(onItemSelected)(item)
+    if (onItemSelected) runOnJS(onItemSelected)(item)
   }
 
   function deselect(id: string) {
@@ -114,7 +114,7 @@ export function useDragSelect<ListItem extends Record<string, any>>(
       delete state[id]
       return state
     })
-    runOnJS(onItemDeselected)(item)
+    if (onItemDeselected) runOnJS(onItemDeselected)(item)
   }
 
   function handleDragSelect(e: { y: number; absoluteX: number }) {
@@ -364,7 +364,7 @@ export function useDragSelect<ListItem extends Record<string, any>>(
       } else {
         select(id)
       }
-    } else {
+    } else if (onItemPress) {
       runOnJS(onItemPress)(tapped)
     }
   }
