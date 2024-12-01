@@ -2,7 +2,7 @@
   "compilerOptions": {
     "rootDir": ".",
     "paths": {
-      "@osamaqarem/react-native-drag-select": ["./src/index"]
+      "@osamaqarem/drag-select": ["./src/index"]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,

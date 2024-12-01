@@ -1,5 +1,5 @@
 {
-  "name": "@osamaqarem/react-native-drag-select",
+  "name": "@osamaqarem/drag-select",
   "version": "0.1.0",
   "description": "A utility for creating a pan gesture that auto-selects items in a list, like your favorite gallery app.",
   "source": "./src/index.tsx",
@@ -53,14 +53,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/osamaqarem/react-native-drag-select.git"
+    "url": "git+https://github.com/osamaqarem/drag-select.git"
   },
   "author": "Osama Qarem <osamaqarem@gmail.com> (https://github.com/osamaqarem)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/osamaqarem/react-native-drag-select/issues"
+    "url": "https://github.com/osamaqarem/drag-select/issues"
   },
-  "homepage": "https://github.com/osamaqarem/react-native-drag-select#readme",
+  "homepage": "https://github.com/osamaqarem/drag-select#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },

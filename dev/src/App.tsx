@@ -1,4 +1,4 @@
-import { useDragSelect } from "@osamaqarem/react-native-drag-select"
+import { useDragSelect } from "@osamaqarem/drag-select"
 import {
   Dimensions,
   Pressable,

@@ -34,7 +34,7 @@ This package is made with [Reanimated](https://docs.swmansion.com/react-native-r
 It's important to specify list config parameters correctly as actual item size and location is never measured.
 
 ```tsx
-import { useDragSelect } from "@osamaqarem/react-native-drag-select"
+import { useDragSelect } from "@osamaqarem/drag-select"
 
 import { View, Text } from "react-native"
 import { GestureDetector } from "react-native-gesture-handler"
@@ -83,21 +83,21 @@ function List() {
 > This package requires [Reanimated v3](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started/#installation) and [Gesture Handler v2](https://docs.swmansion.com/react-native-gesture-handler/docs/fundamentals/installation/).
 
 ```sh
-npm install @osamaqarem/react-native-drag-select
+npm install @osamaqarem/drag-select
 ```
 
 ```sh
-yarn add @osamaqarem/react-native-drag-select
+yarn add @osamaqarem/drag-select
 ```
 
 ```sh
-pnpm add @osamaqarem/react-native-drag-select
+pnpm add @osamaqarem/drag-select
 ```
 
 ## API
 
 ```ts
-import { useDragSelect } from "@osamaqarem/react-native-drag-select"
+import { useDragSelect } from "@osamaqarem/drag-select"
 ```
 
 ### `useDragSelect(config: Config): DragSelect`
@@ -321,7 +321,7 @@ This utility is not inherently expensive. It works by doing some math for every 
 
 ### +60Hz Displays
 
-Drag-to-select calcuations happen once per frame. The more frames are rendered each second, the more often that calculation occurs. If the perceived responsiveness when executing this utility 60 times/sec instead of 120 times/sec for a 120Hz display, then this could be optimized.
+Drag-to-select calcuations happen once per frame. The more frames are rendered each second, the more often that calculation occurs. If the perceived responsiveness when executing this utility 60 times/sec instead of 120 times/sec for a 120Hz display is similar, then this could be something to optimize.
 
 ## Currently Not Supported
 
