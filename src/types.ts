@@ -4,6 +4,7 @@ import type {
 } from "react-native-gesture-handler"
 import type { AnimatedRef } from "react-native-reanimated"
 import type { ReanimatedScrollEvent } from "react-native-reanimated/lib/typescript/hook/commonTypes"
+import type { PropertyPaths } from "./property-paths"
 
 export interface Config<ListItem> {
   /**
@@ -152,7 +153,10 @@ export interface DragSelect<ListItem> {
      * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own custom gestures.
      *
      */
-    createItemPressHandler: (item: ListItem) => SimultaneousGesture
+    createItemPressHandler: (
+      item: ListItem,
+      index: number
+    ) => SimultaneousGesture
     /**
      * This is a single [pan gesture](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/pan-gesture).
      * If you need to rely solely on pressing items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`. See {@link Config.panScrollGesture}.
@@ -210,14 +214,3 @@ type ReadonlySharedValue<T> = Readonly<{
   value: T
   get: () => T
 }>
-
-type PropertyPaths<ListItem> =
-  ListItem extends Record<string, any>
-    ? {
-        [Key in keyof ListItem]: Key extends string // Only allow `string` keys.
-          ? ListItem[Key] extends string | number // Only allow keys which map to a `string` or `number` value.
-            ? Key
-            : `${Key}.${PropertyPaths<ListItem[Key]>}`
-          : never
-      }[keyof ListItem]
-    : never

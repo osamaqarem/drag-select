@@ -64,8 +64,8 @@ function List() {
         data={data}
         ItemSeparatorComponent={<View style={{ height: 30 }} />}
         onScroll={scrollHandler}
-        renderItem={({ item }) => (
-          <GestureDetector gesture={gestures.createItemPressHandler(item)}>
+        renderItem={({ item, index }) => (
+          <GestureDetector gesture={gestures.createItemPressHandler(item, index)}>
             <View style={{ width: 50, height: 50 }}>
               <Text>{item.id}</Text>
             </View>
@@ -268,7 +268,10 @@ interface DragSelect<ListItem> {
      * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own custom gestures.
      *
      */
-    createItemPressHandler: (item: ListItem) => SimultaneousGesture
+    createItemPressHandler: (
+      item: ListItem,
+      index: number
+    ) => SimultaneousGesture
     /**
      * This is a single [pan gesture](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/pan-gesture).
      * If you need to rely solely on pressing items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`. See {@link Config.panScrollGesture}.

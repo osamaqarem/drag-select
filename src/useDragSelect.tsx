@@ -12,6 +12,7 @@ import {
   type MeasuredDimensions,
 } from "react-native-reanimated"
 import type { ReanimatedScrollEvent } from "react-native-reanimated/lib/typescript/hook/commonTypes"
+import { getPropertyByPath } from "./property-paths"
 import type { Config, DragSelect } from "./types"
 
 export function useDragSelect<ListItem extends Record<string, any>>(
@@ -65,18 +66,17 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     return getPropertyByPath(item, keyPath)
   }
 
-  const itemMap = useDerivedValue(
-    // note: `data` copied to UI thread.
+  const itemMap = useDerivedValue<Map<string, ListItem>>(
     () => new Map(data.map((d) => [getId(d) as string, d]))
   )
 
-  type ItemMap = Record<string, ListItem>
-  const selectedItems = useSharedValue<ItemMap>({})
-  const axisId = useSharedValue("")
-  const selectModeActive = useDerivedValue(
-    () => Object.keys(selectedItems.value).length > 0
-  )
+  const selectedItems = useSharedValue<Record<string, ListItem>>({})
+  const selectionSize = useDerivedValue(() => {
+    return Object.keys(selectedItems.value).length
+  })
+  const selectModeActive = useDerivedValue(() => selectionSize.value > 0)
 
+  const axisItem = useSharedValue<{ id: string; index: number } | null>(null)
   const panTransitionFromIndex = useSharedValue<number | null>(null)
   const panEvent = useSharedValue<{
     y: number
@@ -86,9 +86,7 @@ export function useDragSelect<ListItem extends Record<string, any>>(
   } | null>(null)
 
   const listLayout = useSharedValue<MeasuredDimensions | null>(null)
-
-  const scrollContentHeight = useSharedValue(0)
-  const scrollOffset = useSharedValue(0)
+  const listScroll = useSharedValue({ contentHeight: 0, offset: 0 })
 
   function measureListLayout() {
     "worklet"
@@ -123,17 +121,17 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     if (onItemDeselected) runOnJS(onItemDeselected)(item)
   }
 
-  // TODO: refactor to rect/contains instead of points
   function handleDragSelect(e: NonNullable<typeof panEvent.value>) {
     "worklet"
-    if (!selectModeActive.value || !listLayout.value || !data) return
-    if (!axisId.value && __DEV__) {
-      throw new Error("handleDragSelect: axisId was not set.")
-    }
+    if (!selectModeActive.value || !listLayout.value || !axisItem.value) return
+
+    const axisId = axisItem.value.id
+    const axisIndex = axisItem.value.index
 
     const inset = {
       top: insetTop,
-      bottom: scrollContentHeight.value - scrollOffset.value - insetBottom,
+      bottom:
+        listScroll.value.contentHeight - listScroll.value.offset - insetBottom,
       left: insetLeft,
       right: insetRight, // todo(horizontal lists): factor in scroll offset
     }
@@ -146,7 +144,7 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     const numItemsYAxis = Math.ceil(windowHeight / cellHeight)
     const numItemsXAxis = numColumns
 
-    const insetTopWithScroll = Math.max(0, inset.top - scrollOffset.value)
+    const insetTopWithScroll = Math.max(0, inset.top - listScroll.value.offset)
     const safePanY = e.y - insetTopWithScroll
     const safePanX = e.x // todo(horizontal lists): factor in scroll offset
 
@@ -154,9 +152,9 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     if (safePanY < 0 || e.y > listLayout.value.height) return
 
     // account for a row item being cut-off when scroll offset is not 0
-    const scrolledPastTopInset = scrollOffset.value >= inset.top
+    const scrolledPastTopInset = listScroll.value.offset >= inset.top
     const breakpointYoffset = scrolledPastTopInset
-      ? cellHeight - ((scrollOffset.value - inset.top) % cellHeight)
+      ? cellHeight - ((listScroll.value.offset - inset.top) % cellHeight)
       : 0
 
     let breakpointsY = Array.from({ length: numItemsYAxis }).map((_, index) => {
@@ -198,6 +196,7 @@ export function useDragSelect<ListItem extends Record<string, any>>(
       safePanX,
       breakpointsX
     )
+    if (indexLowX === -1 || indexLowY === -1) return
 
     const lowY = breakpointsY[indexLowY]!
     const highY = breakpointsY[indexHighY]!
@@ -209,7 +208,7 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     if (!withinY || !withinX) return
 
     const scrolledRows = scrolledPastTopInset
-      ? Math.floor(Math.abs((inset.top - scrollOffset.value) / cellHeight))
+      ? Math.floor(Math.abs((inset.top - listScroll.value.offset) / cellHeight))
       : 0
     const rowBeginsAtIndex = scrolledRows * numColumns
 
@@ -251,55 +250,55 @@ export function useDragSelect<ListItem extends Record<string, any>>(
      *              - deselect all cells before the axis
      */
     const toIndex = itemIndex
-    if (panTransitionFromIndex.value !== toIndex) {
-      const selectItemAtIndex = (i: number) => {
-        const curr = itemAt(i)
-        if (curr) {
-          const currId = getId(curr)
-          select(currId)
-        }
+    const fromIndex = panTransitionFromIndex.value
+    panTransitionFromIndex.value = toIndex
+
+    if (fromIndex === toIndex) return
+    const selectItemAtIndex = (i: number) => {
+      const curr = itemAt(i)
+      if (!curr) return
+      const currId = getId(curr)
+      select(currId)
+    }
+    const deselectItemAtIndex = (i: number) => {
+      const curr = itemAt(i)
+      if (!curr) return
+      const currId = getId(curr)
+      if (axisId === currId) return
+      deselect(currId)
+    }
+
+    const axisRow = Math.floor(axisIndex / numColumns) + 1
+    const toRow = Math.floor(itemIndex / numColumns) + 1
+
+    const isAxisRow = toRow === axisRow
+    const afterAxisRow = toRow > axisRow
+    const beforeAxisRow = toRow < axisRow
+
+    const backwards = toIndex < fromIndex
+    const forwards = toIndex > fromIndex
+
+    const beforeAxis = fromIndex < axisIndex
+
+    if (backwards && !beforeAxis) {
+      for (let i = fromIndex; i > toIndex; i--) {
+        deselectItemAtIndex(i)
       }
-      const deselectItemAtIndex = (i: number) => {
-        const curr = itemAt(i)
-        if (curr) {
-          const currId = getId(curr)
-          if (axisId.value === currId) return
-          deselect(currId)
-        }
-      }
-
-      const fromIndex = panTransitionFromIndex.value
-
-      const axisItemId = axisId.value
-      // note: `data` copied to UI thread.
-      const axisIndex = data.findIndex((d) => getId(d) === axisItemId)
-      const axisRow = Math.floor(axisIndex / numColumns) + 1
-      const toRow = Math.floor(itemIndex / numColumns) + 1
-
-      const isAxisRow = toRow === axisRow
-      const afterAxisRow = toRow > axisRow
-      const beforeAxisRow = toRow < axisRow
-
-      const backwards = toIndex < fromIndex
-      const forwards = toIndex > fromIndex
-
-      if (backwards) {
-        for (let i = fromIndex; i > toIndex; i--) {
-          deselectItemAtIndex(i)
-        }
-      }
-      if (afterAxisRow || (isAxisRow && forwards)) {
-        for (let i = axisIndex; i <= toIndex; i++) {
-          selectItemAtIndex(i)
-        }
-      } else if (beforeAxisRow || (isAxisRow && backwards)) {
-        for (let i = axisIndex; i >= toIndex; i--) {
-          selectItemAtIndex(i)
-        }
+    } else if (isAxisRow && forwards && beforeAxis) {
+      for (let i = fromIndex; i < toIndex; i++) {
+        deselectItemAtIndex(i)
       }
     }
 
-    panTransitionFromIndex.value = toIndex
+    if (afterAxisRow || (isAxisRow && forwards)) {
+      for (let i = axisIndex; i <= toIndex; i++) {
+        selectItemAtIndex(i)
+      }
+    } else if (beforeAxisRow || (isAxisRow && backwards)) {
+      for (let i = axisIndex; i >= toIndex; i--) {
+        selectItemAtIndex(i)
+      }
+    }
   }
 
   const { setActive: setFrameCbActive } = useFrameCallback(() => {
@@ -319,24 +318,24 @@ export function useDragSelect<ListItem extends Record<string, any>>(
       const inputRange = [endEdgeThreshold, windowHeight]
       const outputRange = [0, panScrollEndMaxVelocity]
       const result = interpolate(y, inputRange, outputRange)
-      const offset = scrollOffset.value + result
+      const offset = listScroll.value.offset + result
       scrollTo(animatedRef, 0, offset, false)
-    } else if (scrollOffset.value > 0 && y < startEdgeThreshold) {
+    } else if (listScroll.value.offset > 0 && y < startEdgeThreshold) {
       const inputRange = [startEdgeThreshold, 0]
       const outputRange = [0, panScrollStartMaxVelocity]
       const result = interpolate(y, inputRange, outputRange)
-      const offset = scrollOffset.value - result
+      const offset = listScroll.value.offset - result
       scrollTo(animatedRef, 0, offset, false)
     }
   }, false)
 
-  function longPressOnStart(id: string) {
+  function longPressOnStart(id: string, index: number) {
     "worklet"
     const longPressed = itemMap.value.get(id)
     if (!longPressed) return
     const inSelection = selectedItems.value[id]
     if (inSelection) return
-    axisId.value = id
+    axisItem.value = { id, index }
     select(id)
   }
 
@@ -378,14 +377,14 @@ export function useDragSelect<ListItem extends Record<string, any>>(
       runOnJS(setFrameCbActive)(false)
     })
 
-  function createItemPressHandler(item: ListItem) {
+  function createItemPressHandler(item: ListItem, index: number) {
     const tapGesture = Gesture.Tap()
       .maxDuration(longPressMinDurationMs)
       .onStart(() => tapOnStart(getId(item)))
 
     const longPressGesture = Gesture.LongPress()
       .minDuration(longPressMinDurationMs)
-      .onStart(() => longPressOnStart(getId(item)))
+      .onStart(() => longPressOnStart(getId(item), index))
       .simultaneousWithExternalGesture(panHandler)
       .enabled(longPressGestureEnabled)
 
@@ -394,13 +393,11 @@ export function useDragSelect<ListItem extends Record<string, any>>(
 
   function onScroll(event: ReanimatedScrollEvent) {
     "worklet"
-    scrollOffset.value = event.contentOffset.y
-    scrollContentHeight.value = event.contentSize.height
+    listScroll.value = {
+      contentHeight: event.contentSize.height,
+      offset: event.contentOffset.y,
+    }
   }
-
-  const selectionSize = useDerivedValue(() => {
-    return Object.keys(selectedItems.value).length
-  })
 
   const selectionHas = (id: string) => {
     return !!selectedItems.value[id]
@@ -435,20 +432,4 @@ export function useDragSelect<ListItem extends Record<string, any>>(
       size: selectionSize,
     },
   }
-}
-
-function getPropertyByPath<T extends Record<string, unknown>>(
-  object: T,
-  path: string
-): string {
-  "worklet"
-  let keys = path.split(".")
-  let property: unknown
-  do {
-    const key = keys.shift()
-    if (key) {
-      property = object[key]
-    }
-  } while (keys.length !== 0)
-  return property as string
 }

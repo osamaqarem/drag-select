@@ -36,13 +36,13 @@ type Item = {
   id: string
 }
 
-const data: Array<Item> = Array.from({ length: 20 }, (_, i) => ({
+const data: Array<Item> = Array.from({ length: 50 }, (_, i) => ({
   id: (i + 1).toString(),
 }))
 
-const ROW_GAP = 30
-const COL_GAP = 30
-const NUM_COL = 3
+const ROW_GAP = 20
+const COL_GAP = 15
+const NUM_COL = 6
 
 const { width: windowWidth } = Dimensions.get("window")
 const marginHorizontal = 50
@@ -108,8 +108,10 @@ function List() {
           data={data}
           numColumns={NUM_COL}
           columnWrapperStyle={styles.columnWrapper}
-          renderItem={({ item }) => (
-            <GestureDetector gesture={gestures.createItemPressHandler(item)}>
+          renderItem={({ item, index }) => (
+            <GestureDetector
+              gesture={gestures.createItemPressHandler(item, index)}
+            >
               <View style={styles.item}>
                 <Text>{item.id}</Text>
               </View>
