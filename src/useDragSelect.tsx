@@ -165,11 +165,37 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     }
     breakpointsY.unshift(0)
 
-    let breakpointsX = Array.from({ length: numItemsXAxis }).map((_, index) => {
-      if (index === 0) {
-        return (index + 1) * cellWidth + insetLeft
+    const moduloColumnAxisIndex = axisIndex % numColumns
+    const isAxisFirstColumn = moduloColumnAxisIndex === 0
+    const isAxisLastColumn = moduloColumnAxisIndex === numColumns - 1
+    let itemsBoundingRectX = Array.from({ length: numItemsXAxis }).map(
+      (_, index) => {
+        const minX = inset.left + index * cellWidth
+        return {
+          minX,
+          maxX: minX + itemWidth,
+          center: minX + itemWidth / 2,
+        }
       }
-      return (index + 1) * cellWidth + columnGap
+    )
+    const axisBoundingRect = itemsBoundingRectX[moduloColumnAxisIndex]
+    if (!axisBoundingRect) return
+    const panningRightOfAxis = e.x >= axisBoundingRect.center
+
+    let breakpointsX = Array.from({ length: numItemsXAxis }).map((_, index) => {
+      if (isAxisLastColumn) {
+        // may pan left to select
+        return inset.left + itemWidth + index * cellWidth
+      }
+      if (!isAxisFirstColumn && !isAxisLastColumn) {
+        // may pan left or right to select
+        if (panningRightOfAxis) {
+          return inset.left + (index + 1) * cellWidth
+        }
+        return inset.left + itemWidth + index * cellWidth
+      }
+      // may pan right to select
+      return inset.left + (index + 1) * cellWidth
     })
     breakpointsX.unshift(inset.left)
 
