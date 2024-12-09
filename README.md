@@ -7,7 +7,7 @@ A utility for creating a pan gesture that auto-selects items in a list, like you
 - Supports Android & iOS
 - Handles scrolling
 - Super performant
-- Flexible API
+- Headless API: Bring your own UI
 - Works with typical scrollable views - [`ScrollView`](https://reactnative.dev/docs/scrollview), [`FlatList`](https://reactnative.dev/docs/flatlist), [`FlashList`](https://shopify.github.io/flash-list/) etc.
 
 > [!IMPORTANT]

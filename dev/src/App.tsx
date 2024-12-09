@@ -42,7 +42,7 @@ const data: Array<Item> = Array.from({ length: 50 }, (_, i) => ({
 
 const ROW_GAP = 20
 const COL_GAP = 15
-const NUM_COL = 6
+const NUM_COL = 4
 
 const { width: windowWidth } = Dimensions.get("window")
 const marginHorizontal = 50
@@ -74,6 +74,7 @@ function List() {
         right: paddingHorizontal,
       },
     },
+    panScrollGesture: { enabled: false },
     onItemPress: (item) => {
       console.log("onItemPress", item.id)
     },

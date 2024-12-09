@@ -133,63 +133,112 @@ export function useDragSelect<ListItem extends Record<string, any>>(
       bottom:
         listScroll.value.contentHeight - listScroll.value.offset - insetBottom,
       left: insetLeft,
-      right: insetRight, // todo(horizontal lists): factor in scroll offset
+      right: insetRight,
     }
-
-    const windowHeight = listLayout.value.height
 
     const cellHeight = itemHeight + rowGap
     const cellWidth = itemWidth + columnGap
 
-    const numItemsYAxis = Math.ceil(windowHeight / cellHeight)
-    const numItemsXAxis = numColumns
-
     const insetTopWithScroll = Math.max(0, inset.top - listScroll.value.offset)
     const safePanY = e.y - insetTopWithScroll
-    const safePanX = e.x // todo(horizontal lists): factor in scroll offset
+    const safePanX = e.x
 
     // noop when panning in top or bottom padding (outside list items)
     if (safePanY < 0 || e.y > listLayout.value.height) return
 
     // account for a row item being cut-off when scroll offset is not 0
     const scrolledPastTopInset = listScroll.value.offset >= inset.top
-    const breakpointYoffset = scrolledPastTopInset
+    const firstFullyVisibleRowStart = scrolledPastTopInset
       ? cellHeight - ((listScroll.value.offset - inset.top) % cellHeight)
       : 0
+    const firstRowHeightRemainder = scrolledPastTopInset
+      ? Math.max(
+          itemHeight - ((listScroll.value.offset - inset.top) % cellHeight),
+          0
+        )
+      : 0
+    const isFirstRowCutOff = firstRowHeightRemainder > 0
 
-    let breakpointsY = Array.from({ length: numItemsYAxis }).map((_, index) => {
-      return (index + 1) * cellHeight + breakpointYoffset
-    })
-    if (breakpointYoffset > 0) {
-      breakpointsY.unshift(breakpointYoffset)
-    }
-    breakpointsY.unshift(0)
+    const moduloColumnsAxisIndex = axisIndex % numColumns
+    const isAxisFirstColumn = moduloColumnsAxisIndex === 0
+    const isAxisLastColumn = moduloColumnsAxisIndex === numColumns - 1
 
-    const moduloColumnAxisIndex = axisIndex % numColumns
-    const isAxisFirstColumn = moduloColumnAxisIndex === 0
-    const isAxisLastColumn = moduloColumnAxisIndex === numColumns - 1
-    let itemsBoundingRectX = Array.from({ length: numItemsXAxis }).map(
-      (_, index) => {
-        const minX = inset.left + index * cellWidth
-        return {
-          minX,
-          maxX: minX + itemWidth,
-          center: minX + itemWidth / 2,
-        }
+    const windowHeight = listLayout.value.height
+    // +1 is to account for a partially visible row at the bottom and top of the list
+    // we only care that this value is higher than the correct number of rows for now.
+    const numRows = Math.ceil(windowHeight / cellHeight) + 1
+    const scrolledRows = (() => {
+      if (!scrolledPastTopInset) return 0
+
+      const normalizedScroll = listScroll.value.offset - inset.top
+      const remainder = normalizedScroll % cellHeight
+      if (remainder === 0 && normalizedScroll >= itemHeight) {
+        return 1
+      } else if (remainder >= itemHeight) {
+        return Math.floor(normalizedScroll / cellHeight) + 1
       }
+      return Math.floor(normalizedScroll / cellHeight)
+    })()
+    const rowBeginsAtIndex = scrolledRows * numColumns
+    const moduloRowsAxisIndex = Math.max(
+      Math.floor(axisIndex / numColumns) - scrolledRows,
+      0
     )
-    const axisBoundingRect = itemsBoundingRectX[moduloColumnAxisIndex]
-    if (!axisBoundingRect) return
-    const panningRightOfAxis = e.x >= axisBoundingRect.center
 
-    let breakpointsX = Array.from({ length: numItemsXAxis }).map((_, index) => {
+    let boundingRectsX = Array.from({ length: numColumns }).map((_, index) => {
+      const minX = inset.left + index * cellWidth
+
+      let minY = isFirstRowCutOff
+        ? firstRowHeightRemainder + rowGap + (index - 1) * cellHeight
+        : firstFullyVisibleRowStart + index * cellHeight
+      minY = index === 0 && isFirstRowCutOff ? 0 : minY
+
+      let maxY = minY + itemHeight
+      maxY = index === 0 && isFirstRowCutOff ? firstRowHeightRemainder : maxY
+
+      return {
+        minY,
+        maxY,
+        minX,
+        maxX: minX + itemWidth,
+        center: minX + itemWidth / 2,
+      }
+    })
+
+    let boundingRectsY = Array.from({ length: numRows }).map((_, index) => {
+      let minY = isFirstRowCutOff
+        ? firstRowHeightRemainder + rowGap + (index - 1) * cellHeight
+        : firstFullyVisibleRowStart + index * cellHeight
+      minY = index === 0 && isFirstRowCutOff ? 0 : minY
+
+      let maxY = minY + itemHeight
+      maxY = index === 0 && isFirstRowCutOff ? firstRowHeightRemainder : maxY
+
+      const actualItemHeight =
+        index === 0 && isFirstRowCutOff ? firstRowHeightRemainder : itemHeight
+      return {
+        minY,
+        maxY,
+        center: minY + actualItemHeight / 2,
+      }
+    })
+
+    const axisXBoundingRect = boundingRectsX[moduloColumnsAxisIndex]
+    if (!axisXBoundingRect) return
+    const isPanningRightOfAxis = safePanX >= axisXBoundingRect.center
+
+    const axisYBoundingRect = boundingRectsY[moduloRowsAxisIndex]
+    if (!axisYBoundingRect) return
+    const isPanningTopOfAxis = safePanY <= axisYBoundingRect.center
+
+    let breakpointsX = Array.from({ length: numColumns }).map((_, index) => {
       if (isAxisLastColumn) {
         // may pan left to select
         return inset.left + itemWidth + index * cellWidth
       }
       if (!isAxisFirstColumn && !isAxisLastColumn) {
         // may pan left or right to select
-        if (panningRightOfAxis) {
+        if (isPanningRightOfAxis) {
           return inset.left + (index + 1) * cellWidth
         }
         return inset.left + itemWidth + index * cellWidth
@@ -198,6 +247,26 @@ export function useDragSelect<ListItem extends Record<string, any>>(
       return inset.left + (index + 1) * cellWidth
     })
     breakpointsX.unshift(inset.left)
+
+    let breakpointsY = Array.from({ length: numRows }).map((_, index) => {
+      if (scrolledPastTopInset) {
+        const factor = isFirstRowCutOff
+          ? firstRowHeightRemainder
+          : firstFullyVisibleRowStart + itemHeight
+
+        if (isPanningTopOfAxis) {
+          return index * cellHeight + factor
+        } else {
+          return index * cellHeight + rowGap + factor
+        }
+      } else {
+        if (isPanningTopOfAxis) {
+          return itemHeight + index * cellHeight
+        }
+        return (index + 1) * cellHeight + firstFullyVisibleRowStart
+      }
+    })
+    breakpointsY.unshift(isFirstRowCutOff ? 0 : firstFullyVisibleRowStart)
 
     const getBreakpointBoundsIndices = (
       value: number,
@@ -232,11 +301,6 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     const withinY = safePanY >= lowY && safePanY <= highY
 
     if (!withinY || !withinX) return
-
-    const scrolledRows = scrolledPastTopInset
-      ? Math.floor(Math.abs((inset.top - listScroll.value.offset) / cellHeight))
-      : 0
-    const rowBeginsAtIndex = scrolledRows * numColumns
 
     const calculateIndex = (rowIndex: number, colIndex: number) => {
       const arraysStartAtZero = 1
@@ -311,6 +375,11 @@ export function useDragSelect<ListItem extends Record<string, any>>(
         deselectItemAtIndex(i)
       }
     } else if (isAxisRow && forwards && beforeAxis) {
+      for (let i = fromIndex; i < toIndex; i++) {
+        deselectItemAtIndex(i)
+      }
+    } else if (!isAxisRow && forwards && beforeAxis) {
+      // panning downwards after selecting upwards
       for (let i = fromIndex; i < toIndex; i++) {
         deselectItemAtIndex(i)
       }
