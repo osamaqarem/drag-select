@@ -10,8 +10,12 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.0",
+    "@react-navigation/drawer": "7.0.19",
     "expo": "~52.0.7",
+    "expo-blur": "~14.0.1",
     "expo-constants": "~17.0.3",
+    "expo-haptics": "~14.0.0",
+    "expo-image": "~2.0.2",
     "expo-linking": "~7.0.3",
     "expo-router": "~4.0.9",
     "expo-status-bar": "~2.0.0",
