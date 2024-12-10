@@ -62,6 +62,7 @@
   },
   "homepage": "https://github.com/osamaqarem/drag-select#readme",
   "publishConfig": {
+    "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
