@@ -35,7 +35,7 @@ This package is made with [Reanimated](https://docs.swmansion.com/react-native-r
 It's important to specify list config parameters correctly as actual item size and location is never measured.
 
 ```tsx
-import { useDragSelect } from "@osamaqarem/drag-select"
+import { useDragSelect } from "@osamaq/drag-select"
 
 import { View, Text } from "react-native"
 import { GestureDetector } from "react-native-gesture-handler"
@@ -84,21 +84,21 @@ function List() {
 > This package requires [Reanimated v3](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started/#installation) and [Gesture Handler v2](https://docs.swmansion.com/react-native-gesture-handler/docs/fundamentals/installation/).
 
 ```sh
-npm install @osamaqarem/drag-select
+npm install @osamaq/drag-select
 ```
 
 ```sh
-yarn add @osamaqarem/drag-select
+yarn add @osamaq/drag-select
 ```
 
 ```sh
-pnpm add @osamaqarem/drag-select
+pnpm add @osamaq/drag-select
 ```
 
 ## API
 
 ```ts
-import { useDragSelect } from "@osamaqarem/drag-select"
+import { useDragSelect } from "@osamaq/drag-select"
 ```
 
 ### `useDragSelect(config: Config): DragSelect`

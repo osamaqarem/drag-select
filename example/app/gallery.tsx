@@ -1,4 +1,4 @@
-import { useDragSelect } from "@osamaqarem/drag-select"
+import { useDragSelect } from "@osamaq/drag-select"
 import { BlurView } from "expo-blur"
 import * as Haptics from "expo-haptics"
 import { Image } from "expo-image"

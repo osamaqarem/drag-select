@@ -1,7 +1,8 @@
-import { DarkTheme, ThemeProvider } from "@react-navigation/native"
 import { Drawer } from "expo-router/drawer"
+import { StatusBar } from "expo-status-bar"
 import { StyleSheet } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
+import { ThemeProvider, DarkTheme } from "@react-navigation/native"
 
 export default function Layout() {
   return (

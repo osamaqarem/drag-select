@@ -1,4 +1,4 @@
-import { useDragSelect } from "@osamaqarem/drag-select"
+import { useDragSelect } from "@osamaq/drag-select"
 import {
   Dimensions,
   Pressable,
