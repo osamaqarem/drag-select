@@ -66,13 +66,17 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     return getPropertyByPath(item, keyPath)
   }
 
-  const itemMap = useDerivedValue<Map<string, ListItem>>(
-    () => new Map(data.map((d) => [getId(d) as string, d]))
+  const itemIndexById = useDerivedValue<Map<string, number>>(
+    () => new Map(data.map((d, idx) => [getId(d) as string, idx] as const))
+  )
+  const itemIdByIndex = useDerivedValue<Map<number, string>>(
+    () => new Map(data.map((d, idx) => [idx, getId(d) as string] as const))
   )
 
-  const selectedItems = useSharedValue<Record<string, ListItem>>({})
+  // Refactor once Reanimated has better support for `Map` & `Set`
+  const selectedItemMap = useSharedValue<Record<string, number>>({})
   const selectionSize = useDerivedValue(() => {
-    return Object.keys(selectedItems.value).length
+    return Object.keys(selectedItemMap.value).length
   })
   const selectModeActive = useDerivedValue(() => selectionSize.value > 0)
 
@@ -98,27 +102,27 @@ export function useDragSelect<ListItem extends Record<string, any>>(
 
   function select(id: string) {
     "worklet"
-    const item = itemMap.value.get(id)
-    if (!item) return
-    const inSelection = selectedItems.value[id]
-    if (inSelection) return
-    selectedItems.modify((state) => {
+    const itemIndex = itemIndexById.value.get(id)
+    if (itemIndex === undefined) return
+    const inSelection = selectedItemMap.value[id]
+    if (inSelection !== undefined) return
+    selectedItemMap.modify((state) => {
       // @ts-expect-error `state` is generic
-      state[id] = item
+      state[id] = itemIndex
       return state
     })
-    if (onItemSelected) runOnJS(onItemSelected)(item)
+    if (onItemSelected) runOnJS(onItemSelected)(id, itemIndex)
   }
 
   function deselect(id: string) {
     "worklet"
-    const item = selectedItems.value[id]
-    if (!item) return
-    selectedItems.modify((state) => {
+    const itemIndex = selectedItemMap.value[id]
+    if (itemIndex === undefined) return
+    selectedItemMap.modify((state) => {
       delete state[id]
       return state
     })
-    if (onItemDeselected) runOnJS(onItemDeselected)(item)
+    if (onItemDeselected) runOnJS(onItemDeselected)(id, itemIndex)
   }
 
   function handleDragSelect(e: NonNullable<typeof panEvent.value>) {
@@ -320,14 +324,6 @@ export function useDragSelect<ListItem extends Record<string, any>>(
 
     const itemIndex = calculateIndex(indexHighY, indexHighX)
 
-    const itemAt = (index: number) => {
-      // note: `data` copied to UI thread.
-      const itemInState = data[index]
-      if (!itemInState) return undefined
-      const id = getId(itemInState)
-      return itemMap.value.get(id)
-    }
-
     if (panTransitionFromIndex.value === null) {
       panTransitionFromIndex.value = itemIndex
     }
@@ -351,17 +347,15 @@ export function useDragSelect<ListItem extends Record<string, any>>(
 
     if (fromIndex === toIndex) return
     const selectItemAtIndex = (i: number) => {
-      const curr = itemAt(i)
-      if (!curr) return
-      const currId = getId(curr)
-      select(currId)
+      const id = itemIdByIndex.value.get(i)
+      if (!id) return
+      select(id)
     }
     const deselectItemAtIndex = (i: number) => {
-      const curr = itemAt(i)
-      if (!curr) return
-      const currId = getId(curr)
-      if (axisId === currId) return
-      deselect(currId)
+      const id = itemIdByIndex.value.get(i)
+      if (!id) return
+      if (axisId === id) return
+      deselect(id)
     }
 
     const axisRow = Math.floor(axisIndex / numColumns) + 1
@@ -430,30 +424,28 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     }
   }, false)
 
-  function longPressOnStart(id: string, index: number) {
+  function longPressOnStart(id: string) {
     "worklet"
-    const longPressed = itemMap.value.get(id)
-    if (!longPressed) return
-    const inSelection = selectedItems.value[id]
-    if (inSelection) return
+    const index = itemIndexById.value.get(id)
+    if (index === undefined) return
+    const inSelection = selectedItemMap.value[id]
+    if (inSelection !== undefined) return
     axisItem.value = { id, index }
     select(id)
   }
 
-  function tapOnStart(id: string) {
+  function tapOnStart(id: string, index: number) {
     "worklet"
-    const tapped = itemMap.value.get(id)
-    if (!tapped) return
-
+    if (!itemIndexById.value.has(id)) return
     if (selectModeActive.value) {
-      const inSelection = selectedItems.value[id]
-      if (inSelection) {
+      const inSelection = selectedItemMap.value[id]
+      if (inSelection !== undefined) {
         deselect(id)
       } else {
         select(id)
       }
     } else if (onItemPress) {
-      runOnJS(onItemPress)(tapped)
+      runOnJS(onItemPress)(id, index)
     }
   }
 
@@ -481,11 +473,11 @@ export function useDragSelect<ListItem extends Record<string, any>>(
   function createItemPressHandler(item: ListItem, index: number) {
     const tapGesture = Gesture.Tap()
       .maxDuration(longPressMinDurationMs)
-      .onStart(() => tapOnStart(getId(item)))
+      .onStart(() => tapOnStart(getId(item), index))
 
     const longPressGesture = Gesture.LongPress()
       .minDuration(longPressMinDurationMs)
-      .onStart(() => longPressOnStart(getId(item), index))
+      .onStart(() => longPressOnStart(getId(item)))
       .simultaneousWithExternalGesture(panHandler)
       .enabled(longPressGestureEnabled)
 
@@ -501,7 +493,7 @@ export function useDragSelect<ListItem extends Record<string, any>>(
   }
 
   const selectionHas = (id: string) => {
-    return !!selectedItems.value[id]
+    return selectedItemMap.value[id] !== undefined
   }
 
   const selectJS = (id: string) => {
@@ -509,7 +501,7 @@ export function useDragSelect<ListItem extends Record<string, any>>(
   }
 
   const selectionClear = () => {
-    selectedItems.value = {}
+    selectedItemMap.value = {}
   }
 
   const deselectJS = (id: string) => {

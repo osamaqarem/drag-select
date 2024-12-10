@@ -120,15 +120,15 @@ export interface Config<ListItem> {
    * Invoked on the JS thread whenever an item is tapped, but not added to selection.
    * Use this callback to handle press events instead of wrapping items in a pressable component.
    */
-  onItemPress?: (item: ListItem) => void
+  onItemPress?: (item: string, index: number) => void
   /**
    * Invoked on the JS thread whenever an item is added to selection.
    */
-  onItemSelected?: (item: ListItem) => void
+  onItemSelected?: (item: string, index: number) => void
   /**
    * Invoked on the JS thread whenever an item is removed from selection.
    */
-  onItemDeselected?: (item: ListItem) => void
+  onItemDeselected?: (item: string, index: number) => void
 }
 
 export interface DragSelect<ListItem> {
@@ -206,11 +206,6 @@ export interface DragSelect<ListItem> {
     /**
      * Count of currently selected items.
      */
-    size: ReadonlySharedValue<number>
+    size: DerivedValue<number>
   }
 }
-
-type ReadonlySharedValue<T> = Readonly<{
-  value: T
-  get: () => T
-}>
