@@ -523,6 +523,7 @@ export function useDragSelect<ListItem extends Record<string, any>>(
       delete: deselectJS,
       has: selectionHas,
       size: selectionSize,
+      items: selectedItemMap,
     },
   }
 }

@@ -207,5 +207,9 @@ export interface DragSelect<ListItem> {
      * Count of currently selected items.
      */
     size: DerivedValue<number>
+    /**
+     * A mapping between selected item IDs and their indices.
+     */
+    items: DerivedValue<Record<string, number>>
   }
 }
