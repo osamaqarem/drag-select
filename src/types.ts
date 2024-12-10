@@ -2,7 +2,7 @@ import type {
   PanGesture,
   SimultaneousGesture,
 } from "react-native-gesture-handler"
-import type { AnimatedRef } from "react-native-reanimated"
+import type { AnimatedRef, DerivedValue } from "react-native-reanimated"
 import type { ReanimatedScrollEvent } from "react-native-reanimated/lib/typescript/hook/commonTypes"
 import type { PropertyPaths } from "./property-paths"
 
@@ -145,12 +145,12 @@ export interface DragSelect<ListItem> {
   onScroll: (event: ReanimatedScrollEvent) => void
   gestures: {
     /**
-     * This is a composed [tap](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture) and
+     * This returns a composed [tap](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture) and
      * [long-press](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/long-press-gesture) gesture.
      * Note that the long press gesture can be disabled by setting `config.longPressGesture.enabled` to `false`. See {@link Config.longPressGesture}.
      *
      * Do not customize the behavior of this gesture directly.
-     * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own custom gestures.
+     * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own.
      *
      */
     createItemPressHandler: (
@@ -162,7 +162,7 @@ export interface DragSelect<ListItem> {
      * If you need to rely solely on pressing items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`. See {@link Config.panScrollGesture}.
      *
      * Do not customize the behavior of this gesture directly.
-     * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own custom gestures.
+     * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own.
      */
     panHandler: PanGesture
   }
@@ -173,7 +173,7 @@ export interface DragSelect<ListItem> {
      * When active, tapping list items will add them or remove them from selection.
      * Config callbacks {@link Config.onItemSelected} and {@link Config.onItemDeselected} will be invoked instead of {@link Config.onItemPress}.
      */
-    active: ReadonlySharedValue<boolean>
+    active: DerivedValue<boolean>
     /**
      * Add an item to selection. When there are no selected items, adding a single item to selection activates selection mode.
      *
@@ -183,6 +183,7 @@ export interface DragSelect<ListItem> {
     add: (id: string) => void
     /**
      * Clear all selected items. Clearing selected items automatically deactivates selection mode.
+     * Note that this does not trigger {@link Config.onItemDeselected}.
      *
      * Must be invoked on the JS thread.
      * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.

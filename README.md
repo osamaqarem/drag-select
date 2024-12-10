@@ -13,8 +13,8 @@ A utility for creating a pan gesture that auto-selects items in a list, like you
 > [!IMPORTANT]
 > This package is in public alpha. Breaking changes may occur in any release until v1.0.0
 >
-> <strong>Feedback wanted!</strong><br/>
-> If your use case is [not supported](#currently-not-supported) or something is not working as expected, I'd want to hear from you.<br/>Please check the issues tab for similar feedback or submit a new issue.
+> <strong>Feedback Needed</strong><br/>
+> If something is not working as expected or your use case is [not supported](#currently-not-supported), let me know by submitting an issue. Please check the issues tab for similar feedback before creating a new issue.
 
 ## Table of Contents
 
@@ -23,6 +23,7 @@ A utility for creating a pan gesture that auto-selects items in a list, like you
 - [API](#api)
 - [Recipes](#recipes)
 - [Currently Not Supported](#currently-not-supported)
+- [Known Issues](#known-issues)
 - [Development](#development)
 
 ## Usage
@@ -224,15 +225,15 @@ interface Config<ListItem> {
    * Invoked on the JS thread whenever an item is tapped, but not added to selection.
    * Use this callback to handle press events instead of wrapping items in a pressable component.
    */
-  onItemPress?: (item: ListItem) => void
+  onItemPress?: (item: string, index: number) => void
   /**
    * Invoked on the JS thread whenever an item is added to selection.
    */
-  onItemSelected?: (item: ListItem) => void
+  onItemSelected?: (item: string, index: number) => void
   /**
    * Invoked on the JS thread whenever an item is removed from selection.
    */
-  onItemDeselected?: (item: ListItem) => void
+  onItemDeselected?: (item: string, index: number) => void
 }
 ```
 
@@ -260,12 +261,12 @@ interface DragSelect<ListItem> {
   onScroll: (event: ReanimatedScrollEvent) => void
   gestures: {
     /**
-     * This is a composed [tap](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture) and
+     * This returns a composed [tap](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture) and
      * [long-press](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/long-press-gesture) gesture.
      * Note that the long press gesture can be disabled by setting `config.longPressGesture.enabled` to `false`. See {@link Config.longPressGesture}.
      *
      * Do not customize the behavior of this gesture directly.
-     * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own custom gestures.
+     * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own.
      *
      */
     createItemPressHandler: (
@@ -277,7 +278,7 @@ interface DragSelect<ListItem> {
      * If you need to rely solely on pressing items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`. See {@link Config.panScrollGesture}.
      *
      * Do not customize the behavior of this gesture directly.
-     * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own custom gestures.
+     * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own.
      */
     panHandler: PanGesture
   }
@@ -288,7 +289,7 @@ interface DragSelect<ListItem> {
      * When active, tapping list items will add them or remove them from selection.
      * Config callbacks {@link Config.onItemSelected} and {@link Config.onItemDeselected} will be invoked instead of {@link Config.onItemPress}.
      */
-    active: ReadonlySharedValue<boolean>
+    active: DerivedValue<boolean>
     /**
      * Add an item to selection. When there are no selected items, adding a single item to selection activates selection mode.
      *
@@ -298,6 +299,7 @@ interface DragSelect<ListItem> {
     add: (id: string) => void
     /**
      * Clear all selected items. Clearing selected items automatically deactivates selection mode.
+     * Note that this does not trigger {@link Config.onItemDeselected}.
      *
      * Must be invoked on the JS thread.
      * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
@@ -321,7 +323,11 @@ interface DragSelect<ListItem> {
     /**
      * Count of currently selected items.
      */
-    size: ReadonlySharedValue<number>
+    size: DerivedValue<number>
+    /**
+     * A mapping between selected item IDs and their indices.
+     */
+    items: DerivedValue<Record<string, number>>
   }
 }
 ```
@@ -334,16 +340,16 @@ TODO
 
 ## Performance
 
-Running this utility is not inherently expensive. It works by doing some math on every [frame update](https://docs.swmansion.com/react-native-reanimated/docs/advanced/useFrameCallback/) and only when panning the list. Performance cost comes from the additional logic added in response to changes in selection. If you're finding that this is not the case, please submit an issue with details/reproduction and I'm happy to take a look.
+Running this utility is not inherently expensive. It works by doing some math on every [frame update](https://docs.swmansion.com/react-native-reanimated/docs/advanced/useFrameCallback/) and only when panning the list. In my testing, I could not manage to get any frame drops at this point.
+
+Performance cost comes from the additional logic added in response to changes in selection. You can easily cause frame drops by running expensive animations.
 
 > [!TIP]
 > Try to be conservative in list item animations on selection change.
-
-### +60Hz Displays
-
-Only tested on a 60Hz display.
-
-Drag-to-select calcuations happen once per frame. The more frames are rendered each second, the more often that calculation occurs. If the perceived responsiveness when executing this utility 60 times/sec on a 120Hz display the same as executing it 120 times/sec, then this could be something to optimize.
+> - Don't animate too many things
+> - Keep animations short
+>
+> Check out the [recipes](#recipes) for what this might look like.
 
 ## Currently Not Supported
 
@@ -354,6 +360,9 @@ Drag-to-select calcuations happen once per frame. The more frames are rendered e
 
 Most would be easy to support, except lists with dynamic item size. I'm not sure drag-to-select would make sense there anyway.
 
+## Known Issues
+
+- **Android, new architecture**: In the new architecture, automatic scrolling will lead to the app hanging with an ANR notification. This appears to be a bug with React Native which has been [fixed](https://github.com/facebook/react-native/pull/44725) in 0.77+
 
 ## Development
 
