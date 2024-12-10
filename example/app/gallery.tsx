@@ -1,11 +1,13 @@
 import { useDragSelect } from "@osamaq/drag-select"
 import { BlurView } from "expo-blur"
 import * as Haptics from "expo-haptics"
+import { Image as ExpoImage } from "expo-image"
 import {
   Dimensions,
   Platform,
   Pressable,
   StyleSheet,
+  Text,
   TextInput,
   View,
   type TextInputProps,
@@ -43,10 +45,11 @@ const ITEM_WIDTH = (windowWidth - COL_GAP * (NUM_COL - 1)) / NUM_COL
 const ITEM_HEIGHT = 100
 
 export default function List() {
-  const { bottom: bottomInset, top: topInset } = useSafeAreaInsets()
+  const safeArea = useSafeAreaInsets()
 
   const flatlist = useAnimatedRef<Animated.FlatList<Item>>()
 
+  const bottomPadding = safeArea.bottom + 100
   const { gestures, onScroll, selection } = useDragSelect({
     data,
     key: "id",
@@ -57,11 +60,14 @@ export default function List() {
       animatedRef: flatlist,
       itemSize: { height: ITEM_HEIGHT, width: ITEM_WIDTH },
       contentInset: {
-        top: topInset,
-        bottom: bottomInset,
+        top: safeArea.top,
+        bottom: bottomPadding,
       },
     },
-    panScrollGesture: { enabled: Platform.OS === "ios" },
+    panScrollGesture: {
+      enabled: Platform.OS === "ios",
+      endThreshold: 0.65,
+    },
     onItemPress: (id, index) => {
       console.log("onItemPress", { id, index })
     },
@@ -75,7 +81,7 @@ export default function List() {
 
   const scrollHandler = useAnimatedScrollHandler(onScroll)
 
-  const animatedClearBtnStyle = useAnimatedStyle(() => {
+  const panelVisibilityAnimatedStyle = useAnimatedStyle(() => {
     return {
       pointerEvents: selection.size.value > 0 ? "auto" : "none",
       opacity: selection.size.value > 0 ? 1 : 0,
@@ -105,8 +111,8 @@ export default function List() {
         <Animated.FlatList<Item>
           style={styles.flatlist}
           contentContainerStyle={{
-            paddingTop: topInset,
-            paddingBottom: bottomInset,
+            paddingTop: safeArea.top,
+            paddingBottom: bottomPadding,
           }}
           ItemSeparatorComponent={ItemSeparator}
           columnWrapperStyle={styles.columnWrapper}
@@ -139,10 +145,10 @@ export default function List() {
       <AnimatedPressable
         style={[
           {
-            top: topInset + 7,
+            top: safeArea.top + 7,
           },
           styles.clearBtn,
-          animatedClearBtnStyle,
+          panelVisibilityAnimatedStyle,
         ]}
         onPress={selection.clear}
       >
@@ -152,6 +158,10 @@ export default function List() {
           experimentalBlurMethod="dimezisBlurView"
           style={styles.clearBtnBlurView}
         >
+          <ExpoImage
+            source={require("../assets/x-mark.svg")}
+            style={styles.clearBtnIcon}
+          />
           <AnimatedTextInput
             animatedProps={animatedTextProps}
             defaultValue="0"
@@ -160,6 +170,52 @@ export default function List() {
           />
         </BlurView>
       </AnimatedPressable>
+
+      <Animated.View
+        style={[
+          {
+            height: bottomPadding,
+          },
+          styles.bottomPanel,
+          panelVisibilityAnimatedStyle,
+        ]}
+      >
+        <BlurView
+          tint="dark"
+          intensity={100}
+          experimentalBlurMethod="dimezisBlurView"
+          style={[
+            styles.bottomPanelBlurView,
+            {
+              paddingBottom: safeArea.bottom,
+            },
+          ]}
+        >
+          <View style={styles.bottomPanelItem}>
+            <ExpoImage
+              source={require("../assets/share.svg")}
+              style={styles.bottomPanelItemIcon}
+            />
+            <Text style={styles.bottomPanelText}>Share</Text>
+          </View>
+
+          <View style={styles.bottomPanelItem}>
+            <ExpoImage
+              source={require("../assets/download.svg")}
+              style={styles.bottomPanelItemIcon}
+            />
+            <Text style={styles.bottomPanelText}>Save</Text>
+          </View>
+
+          <View style={styles.bottomPanelItem}>
+            <ExpoImage
+              source={require("../assets/trash.svg")}
+              style={styles.bottomPanelItemIcon}
+            />
+            <Text style={styles.bottomPanelText}>Delete</Text>
+          </View>
+        </BlurView>
+      </Animated.View>
     </>
   )
 }
@@ -184,6 +240,7 @@ const ListItem = ({
     const isSelected = selectedItems.value[id] !== undefined
     return {
       padding: withTiming(isSelected ? 4 : 0, timing),
+      opacity: isSelected ? 0.6 : 1,
       transform: [
         {
           scale: withTiming(isSelected ? 0.9 : 1, timing),
@@ -232,12 +289,50 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 50,
     overflow: "hidden",
-    justifyContent: "center",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    flexDirection: "row",
+  },
+  clearBtnIcon: {
+    width: 20,
+    height: 20,
   },
   clearBtnText: {
+    height: "100%",
+    minWidth: 45,
     pointerEvents: "none",
-    textAlign: "center",
-    color: "white",
+    color: "#EDEEF0",
     fontSize: 14,
+    paddingLeft: 10,
+  },
+  bottomPanel: {
+    position: "absolute",
+    bottom: 0,
+    width: "100%",
+    borderTopRightRadius: 40,
+    borderTopLeftRadius: 40,
+    overflow: "hidden",
+  },
+  bottomPanelBlurView: {
+    height: "100%",
+    width: "100%",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "space-around",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  bottomPanelItem: {
+    alignItems: "center",
+    justifyContent: "center",
+    rowGap: 8,
+  },
+  bottomPanelItemIcon: {
+    width: 24,
+    height: 24,
+  },
+  bottomPanelText: {
+    color: "#EDEEF0",
+    fontSize: 12,
+    fontWeight: "500",
   },
 })

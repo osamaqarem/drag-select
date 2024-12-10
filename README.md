@@ -369,7 +369,7 @@ This project uses [pnpm](https://pnpm.io/installation).
 
 ```sh
 pnpm install
-pnpm dev ios
+pnpm dev start
 ```
 
 ## Acknowledgements
