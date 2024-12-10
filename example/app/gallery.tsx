@@ -1,7 +1,6 @@
 import { useDragSelect } from "@osamaq/drag-select"
 import { BlurView } from "expo-blur"
 import * as Haptics from "expo-haptics"
-import { Image } from "expo-image"
 import {
   Dimensions,
   Platform,
@@ -37,15 +36,14 @@ const data: Array<Item> = Array.from({ length: 100 }, (_, i) => ({
 
 const { width: windowWidth } = Dimensions.get("window")
 
-const ROW_GAP = 2
-const COL_GAP = 2
-const NUM_COL = 5
+const ROW_GAP = 6
+const COL_GAP = 6
+const NUM_COL = 4
 const ITEM_WIDTH = (windowWidth - COL_GAP * (NUM_COL - 1)) / NUM_COL
-const ITEM_HEIGHT = 80
+const ITEM_HEIGHT = 100
 
 export default function List() {
-  const { bottom: bottomInset } = useSafeAreaInsets()
-  const topInset = 10
+  const { bottom: bottomInset, top: topInset } = useSafeAreaInsets()
 
   const flatlist = useAnimatedRef<Animated.FlatList<Item>>()
 
@@ -169,7 +167,7 @@ export default function List() {
 const ItemSeparator = () => <View style={styles.itemSeparator} />
 
 const timing = {
-  duration: 100,
+  duration: 300,
   easing: Easing.bezier(0.33, 1, 0.68, 1),
 }
 
@@ -183,24 +181,20 @@ const ListItem = ({
   selectedItems: SharedValue<Record<string, number>>
 }) => {
   const animatedStyle = useAnimatedStyle(() => {
-    const isSelected = typeof selectedItems.value[id] === "number"
+    const isSelected = selectedItems.value[id] !== undefined
     return {
-      padding: withTiming(isSelected ? 5 : 0, timing),
+      padding: withTiming(isSelected ? 4 : 0, timing),
       transform: [
         {
-          scale: withTiming(isSelected ? 0.95 : 1, timing),
+          scale: withTiming(isSelected ? 0.9 : 1, timing),
         },
       ],
-      // We don't want to use `withTiming` here, but this fixes an issue where the border color does not update on Android when clearing all selected items.
-      borderColor: withTiming(isSelected ? "#5eb1ef" : "transparent", {
-        duration: 1,
-      }),
     }
   })
 
   return (
     <Animated.View style={[styles.imageContainer, animatedStyle]}>
-      <Image style={styles.image} source={{ uri: imgUrl }} contentFit="cover" />
+      <Animated.Image style={styles.image} source={{ uri: imgUrl }} />
     </Animated.View>
   )
 }
@@ -218,15 +212,11 @@ const styles = StyleSheet.create({
   imageContainer: {
     height: ITEM_HEIGHT,
     width: ITEM_WIDTH,
-    borderWidth: 2,
-    borderRadius: 15,
-    borderStyle: "dotted",
   },
   image: {
     height: "100%",
     width: "100%",
-    borderRadius: 10,
-    backgroundColor: "#222",
+    borderRadius: 14,
   },
   itemSeparator: {
     height: ROW_GAP,

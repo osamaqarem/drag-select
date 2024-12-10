@@ -7,6 +7,7 @@ import { ThemeProvider, DarkTheme } from "@react-navigation/native"
 export default function Layout() {
   return (
     <GestureHandlerRootView style={styles.gestureHandlerRootView}>
+      <StatusBar style="light" />
       <ThemeProvider value={DarkTheme}>
         <Drawer>
           <Drawer.Screen
@@ -21,6 +22,7 @@ export default function Layout() {
             options={{
               drawerLabel: "Photo Gallery",
               title: "Photo Gallery",
+              headerShown: false,
             }}
           />
           <Drawer.Screen

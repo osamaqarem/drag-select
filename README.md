@@ -340,16 +340,15 @@ TODO
 
 ## Performance
 
-Running this utility is not inherently expensive. It works by doing some math on every [frame update](https://docs.swmansion.com/react-native-reanimated/docs/advanced/useFrameCallback/) and only when panning the list. In my testing, I could not manage to get any frame drops at this point.
+Running this utility is not inherently expensive. It works by doing some math on every [frame update](https://docs.swmansion.com/react-native-reanimated/docs/advanced/useFrameCallback/) and only when panning the list. In my testing, I could not manage to get any frame drops at this point. However...
 
 Performance cost comes from the additional logic added in response to changes in selection. You can easily cause frame drops by running expensive animations.
 
 > [!TIP]
 > Try to be conservative in list item animations on selection change.
-> - Don't animate too many things
-> - Keep animations short
 >
-> Check out the [recipes](#recipes) for what this might look like.
+> - Certain components and properties are more costly to animate than others
+> - Don't animate too many things at once
 
 ## Currently Not Supported
 
@@ -358,7 +357,7 @@ Performance cost comes from the additional logic added in response to changes in
 - Lists with dynamic item size
 - Section lists
 
-Most would be easy to support, except lists with dynamic item size. I'm not sure drag-to-select would make sense there anyway.
+Most would be possible to support, except lists with dynamic item size. I'm not sure drag-to-select would make sense there, and the key performance principle of this library is avoiding item measurements.
 
 ## Known Issues
 
