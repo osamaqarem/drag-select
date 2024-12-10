@@ -167,18 +167,24 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     // +1 is to account for a partially visible row at the bottom and top of the list
     // we only care that this value is higher than the correct number of rows for now.
     const numRows = Math.ceil(windowHeight / cellHeight) + 1
+
     const scrolledRows = (() => {
       if (!scrolledPastTopInset) return 0
 
       const normalizedScroll = listScroll.value.offset - inset.top
       const remainder = normalizedScroll % cellHeight
-      if (remainder === 0 && normalizedScroll >= itemHeight) {
+      if (
+        remainder === 0 &&
+        normalizedScroll >= itemHeight &&
+        normalizedScroll < cellHeight
+      ) {
         return 1
       } else if (remainder >= itemHeight) {
         return Math.floor(normalizedScroll / cellHeight) + 1
       }
       return Math.floor(normalizedScroll / cellHeight)
     })()
+
     const rowBeginsAtIndex = scrolledRows * numColumns
     const moduloRowsAxisIndex = Math.max(
       Math.floor(axisIndex / numColumns) - scrolledRows,
