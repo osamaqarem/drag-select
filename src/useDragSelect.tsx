@@ -14,6 +14,7 @@ import {
 import type { ReanimatedScrollEvent } from "react-native-reanimated/lib/typescript/hook/commonTypes"
 import { getPropertyByPath } from "./property-paths"
 import type { Config, DragSelect } from "./types"
+import { useCallback, useMemo } from "react"
 
 export function useDragSelect<ListItem extends Record<string, any>>(
   config: Config<ListItem>
@@ -92,13 +93,13 @@ export function useDragSelect<ListItem extends Record<string, any>>(
   const listLayout = useSharedValue<MeasuredDimensions | null>(null)
   const listScroll = useSharedValue({ contentHeight: 0, offset: 0 })
 
-  function measureListLayout() {
+  const measureListLayout = useCallback(() => {
     "worklet"
     listLayout.value = measure(animatedRef)
     if (!listLayout.value && __DEV__) {
       throw new Error("Failed to measure layout: `measure` returned `null`")
     }
-  }
+  }, [animatedRef, listLayout])
 
   function select(id: string) {
     "worklet"
@@ -197,18 +198,7 @@ export function useDragSelect<ListItem extends Record<string, any>>(
 
     let boundingRectsX = Array.from({ length: numColumns }).map((_, index) => {
       const minX = inset.left + index * cellWidth
-
-      let minY = isFirstRowCutOff
-        ? firstRowHeightRemainder + rowGap + (index - 1) * cellHeight
-        : firstFullyVisibleRowStart + index * cellHeight
-      minY = index === 0 && isFirstRowCutOff ? 0 : minY
-
-      let maxY = minY + itemHeight
-      maxY = index === 0 && isFirstRowCutOff ? firstRowHeightRemainder : maxY
-
       return {
-        minY,
-        maxY,
         minX,
         maxX: minX + itemWidth,
         center: minX + itemWidth / 2,
@@ -449,26 +439,39 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     }
   }
 
-  const panHandler = Gesture.Pan()
-    .maxPointers(1)
-    .activateAfterLongPress(selectModeActive.value ? 0 : longPressMinDurationMs)
-    .onStart(() => {
-      measureListLayout()
-      runOnJS(setFrameCbActive)(true)
-    })
-    .onUpdate((e) => {
-      panEvent.value = {
-        y: e.y,
-        x: e.x,
-        translationX: e.translationX,
-        translationY: e.translationY,
-      }
-    })
-    .onEnd(() => {
-      panTransitionFromIndex.value = null
-      panEvent.value = null
-      runOnJS(setFrameCbActive)(false)
-    })
+  const panHandler = useMemo(
+    () =>
+      Gesture.Pan()
+        .maxPointers(1)
+        .activateAfterLongPress(
+          selectModeActive.value ? 0 : longPressMinDurationMs
+        )
+        .onStart(() => {
+          measureListLayout()
+          runOnJS(setFrameCbActive)(true)
+        })
+        .onUpdate((e) => {
+          panEvent.value = {
+            y: e.y,
+            x: e.x,
+            translationX: e.translationX,
+            translationY: e.translationY,
+          }
+        })
+        .onEnd(() => {
+          panTransitionFromIndex.value = null
+          panEvent.value = null
+          runOnJS(setFrameCbActive)(false)
+        }),
+    [
+      longPressMinDurationMs,
+      measureListLayout,
+      panEvent,
+      panTransitionFromIndex,
+      selectModeActive,
+      setFrameCbActive,
+    ]
+  )
 
   function createItemPressHandler(id: string, index: number) {
     const tapGesture = Gesture.Tap()
