@@ -97,7 +97,9 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     "worklet"
     listLayout.value = measure(animatedRef)
     if (!listLayout.value && __DEV__) {
-      throw new Error("Failed to measure layout: `measure` returned `null`")
+      throw new Error(
+        "drag-select: Failed to measure layout: `measure` returned `null`"
+      )
     }
   }, [animatedRef, listLayout])
 
