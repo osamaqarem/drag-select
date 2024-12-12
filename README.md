@@ -1,6 +1,10 @@
 # 👆 Drag Select for React Native
 
-<pre></pre>
+<p>
+  <img src="./docs/assets/hero_2.gif" width="250px" />
+  &nbsp;
+  <img src="./docs/assets/hero_1.gif" width="250px" />
+</p>
 
 A utility for creating a pan gesture that auto-selects items in a list, like your favorite gallery app.
 
@@ -13,12 +17,14 @@ A utility for creating a pan gesture that auto-selects items in a list, like you
 > [!IMPORTANT]
 > This package is in public alpha. Breaking changes may occur in any release until v1.0.0
 >
-> <strong>Feedback Needed</strong><br/>
+> <strong>Feedback needed</strong><br/>
 > If something is not working as expected or your use case is [not supported](#currently-not-supported), let me know by submitting an issue. Please check the issues tab for similar feedback before creating a new issue.
 
 ## Table of Contents
 
 - [Usage](#usage)
+  - [Quickstart](#quickstart)
+  - [Step-by-step](#step-by-step)
 - [Installation](#installation)
 - [API](#api)
 - [Recipes](#recipes)
@@ -28,11 +34,13 @@ A utility for creating a pan gesture that auto-selects items in a list, like you
 
 ## Usage
 
+### Quickstart
+
 This package is made with [Reanimated](https://docs.swmansion.com/react-native-reanimated) & [Gesture Handler](https://docs.swmansion.com/react-native-gesture-handler), and using it requires some familiarity.
 
 `useDragSelect` is a utility hook. It works by taking in parameters describing the UI of your list and returns managed gestures.
 
-It's important to specify list config parameters correctly as actual item size and location is never measured.
+Paste this snippet into your project to get started.
 
 ```tsx
 import { useDragSelect } from "@osamaq/drag-select"
@@ -42,18 +50,25 @@ import { GestureDetector } from "react-native-gesture-handler"
 import Animated, { useAnimatedRef, useAnimatedScrollHandler } from "react-native-reanimated"
 
 function List() {
-  const data = [{ id: "usr_123", name: "foo" }]
+  const data = Array.from({ length: 50 }).map((_, index) => ({
+    id: `usr_${index}`,
+    name: "foo",
+  }))
 
-  const flatlist = useAnimatedRef()
+  const flatlist = useAnimatedRef<FlatList<(typeof data)[number]>>()
 
   const { gestures, onScroll } = useDragSelect({
     data,
     key: "id",
     list: {
-      columnSeparatorWidth: 0,
-      rowSeparatorHeight: 30,
       animatedRef: flatlist,
       itemSize: { height: 50, width: 50 },
+    },
+    onItemSelected: (id, index) => {
+      console.log("onItemSelected", { id, index })
+    },
+    onItemDeselected: (id, index) => {
+      console.log("onItemDeselected", { id, index })
     },
   })
 
@@ -63,7 +78,7 @@ function List() {
     <GestureDetector gesture={gestures.panHandler}>
       <Animated.FlatList
         data={data}
-        ItemSeparatorComponent={<View style={{ height: 30 }} />}
+        ref={flatlist}
         onScroll={scrollHandler}
         renderItem={({ item, index }) => (
           <GestureDetector gesture={gestures.createItemPressHandler(item.id, index)}>
@@ -77,6 +92,163 @@ function List() {
   )
 }
 ```
+
+### Step-by-step
+
+#### 1. Create a list
+
+- The list component must be [animated](https://docs.swmansion.com/react-native-reanimated/docs/core/createAnimatedComponent)
+- To use autoscrolling, the component must support [`scrollTo`](https://docs.swmansion.com/react-native-reanimated/docs/scroll/scrollTo/#remarks)
+
+<details>
+<summary><strong>Show code</strong></summary>
+
+```tsx
+import Animated from "react-native-reanimated"
+import { Text, View } from "react-native"
+
+export function List() {
+  const data = Array.from({ length: 50 }).map((_, index) => ({
+    id: `usr_${index}`,
+    name: "foo",
+  }))
+
+  return (
+    <Animated.ScrollView>
+      {data.map((item) => (
+        <View key={item.id}>
+          <Text>{item.id}</Text>
+        </View>
+      ))}
+    </Animated.ScrollView>
+  )
+}
+```
+</details>
+
+#### 2. Style it
+
+When styling your list, parameters like item size and column gap must be specified in plain numbers.
+
+- Avoid relative parameters for item size e.g. `width: "25%"`
+- When positioning items, avoid properties like `justifyContent`. Instead, specify column/row gap and padding
+
+That is because we will be passing those parameters to `useDragSelect` and actual item size or location is never measured internally.
+
+<details>
+<summary><strong>Show code</strong></summary>
+
+```tsx
+const { width: windowWidth } = Dimensions.get("window")
+
+const numColumns = 2
+const rowGap = 50
+const columnGap = 50
+
+const paddingHorizontal = 24
+const listWidth = windowWidth - paddingHorizontal * 2
+
+const itemWidth = (listWidth - columnGap * (numColumns - 1)) / numColumns
+const itemHeight = 50
+```
+
+The list layout on the other hand is measured once per pan gesture, which is why we have to pass an [animated ref](https://docs.swmansion.com/react-native-reanimated/docs/core/useAnimatedRef/) to the hook.
+
+```tsx
+// ...
+  const scrollView = useAnimatedRef<Animated.ScrollView>()
+
+  useDragSelect({
+    data,
+    key: "id",
+    list: {
+      animatedRef: scrollView,
+      columnGap,
+      rowGap,
+      itemSize: { height: itemHeight, width: itemWidth },
+      contentInset: {
+        right: paddingHorizontal,
+        left: paddingHorizontal,
+      },
+    },
+  })
+
+  return (
+    <Animated.ScrollView
+      ref={scrollView}
+      style={{
+        rowGap,
+        columnGap,
+        paddingHorizontal,
+        flexGrow: 1,
+        flexDirection: "row",
+        flexWrap: "wrap",
+      }}
+    >
+      {data.map((item) => (
+        <View
+          key={item.id}
+          style={{
+            width: itemWidth,
+            height: itemHeight,
+          }}
+        >
+          <Text>{item.id}</Text>
+        </View>
+      ))}
+    </Animated.ScrollView>
+  )
+```
+</details>
+
+#### 3. Register events
+
+While `useDragSelect` manages gestures for us, we still have to register them. Create [`GestureDetector`](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/gesture-detector/)'s wrapping the list and each item and a [scroll event handler](https://docs.swmansion.com/react-native-reanimated/docs/scroll/useAnimatedScrollHandler/).
+
+- Long pressing an item activates 'selection mode'
+- A long press followed by a pan gesture selects items
+- In 'selection mode', tapping an item selects it
+
+<details>
+<summary><strong>Show code</strong></summary>
+
+```tsx
+  const { gestures, onScroll } = useDragSelect(...)
+
+  const scrollHandler = useAnimatedScrollHandler({ onScroll })
+
+  return (
+    <GestureDetector gesture={gestures.panHandler}>
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        ref={...}
+        style={...}
+      >
+        {data.map((item, index) => (
+          <GestureDetector
+            key={item.id}
+            gesture={gestures.createItemPressHandler(item.id, index)}
+          >
+            <View style={...}>
+              <Text>{item.id}</Text>
+            </View>
+          </GestureDetector>
+        ))}
+      </Animated.ScrollView>
+    </GestureDetector>
+  )
+```
+</details>
+
+#### 4. Build the rest 🦉
+
+The rest is up to you!
+
+> [!TIP]
+> - Use methods on the `selection` object to imperatively `add`, `delete` or `clear` items from the JS thread
+> - Use `selection.items` to drive animations with Reanimated
+
+Check out [recipes](#recipes) for more fleshed out examples.
 
 ## Installation
 
@@ -111,7 +283,7 @@ import { useDragSelect } from "@osamaq/drag-select"
 </summary>
 
 ```ts
-interface Config<ListItem> {
+interface Config<ListItem = unknown> {
   /**
    * The same array of items rendered on screen in a scrollable view.
    */
@@ -225,17 +397,18 @@ interface Config<ListItem> {
   }
   /**
    * Invoked on the JS thread whenever an item is tapped, but not added to selection.
-   * Use this callback to handle press events instead of wrapping items in a pressable component.
+   *
+   * You may still wrap items with your own pressable while still using this callback to handle presses. This should be more convenient than managing button `disabled` state based on whether selection mode manually.
    */
-  onItemPress?: (item: string, index: number) => void
+  onItemPress?: (id: string, index: number) => void
   /**
    * Invoked on the JS thread whenever an item is added to selection.
    */
-  onItemSelected?: (item: string, index: number) => void
+  onItemSelected?: (id: string, index: number) => void
   /**
    * Invoked on the JS thread whenever an item is removed from selection.
    */
-  onItemDeselected?: (item: string, index: number) => void
+  onItemDeselected?: (id: string, index: number) => void
 }
 ```
 
@@ -249,7 +422,7 @@ interface Config<ListItem> {
 </summary>
 
 ```ts
-interface DragSelect<ListItem> {
+interface DragSelect {
   /**
    * Must be used with [`useAnimatedScrollHandler`](https://docs.swmansion.com/react-native-reanimated/docs/scroll/useAnimatedScrollHandler)
    * and passed to the animated list to use the pan-scroll gesture.
@@ -271,10 +444,7 @@ interface DragSelect<ListItem> {
      * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own.
      *
      */
-    createItemPressHandler: (
-      item: ListItem,
-      index: number
-    ) => SimultaneousGesture
+    createItemPressHandler: (id: string, index: number) => SimultaneousGesture
     /**
      * This is a single [pan gesture](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/pan-gesture).
      * If you need to rely solely on pressing items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`. See {@link Config.panScrollGesture}.
@@ -330,6 +500,41 @@ interface DragSelect<ListItem> {
      * A mapping between selected item IDs and their indices.
      */
     items: DerivedValue<Record<string, number>>
+    /**
+     * Counterpart API for the UI thread.
+     */
+    ui: {
+      /**
+       * Add an item to selection. When there are no selected items, adding a single item to selection activates selection mode.
+       *
+       * Must be invoked on the UI thread.
+       * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+       */
+      add: (id: string) => void
+      /**
+       * Clear all selected items. Clearing selected items automatically deactivates selection mode.
+       * Note that this does not trigger {@link Config.onItemDeselected}.
+       *
+       * Must be invoked on the UI thread.
+       * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+       */
+      clear: () => void
+      /**
+       * Remove an item from selection.
+       * When the last item is removed from selection, selection mode is deactivated.
+       *
+       * Must be invoked on the UI thread.
+       * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+       */
+      delete: (id: string) => void
+      /**
+       * Indicates whether an item is selected.
+       *
+       * Must be invoked on the UI thread.
+       * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+       */
+      has: (id: string) => boolean
+    }
   }
 }
 ```
@@ -338,7 +543,17 @@ interface DragSelect<ListItem> {
 
 ## Recipes
 
-TODO
+The [recipes app](./example/README.md) contains sample integrations of drag-select.
+
+https://github.com/user-attachments/assets/0e5697d2-aaf8-4888-bfc6-8186f5b0d04b
+
+> Remarks:
+> `FlatList`, haptic feedback on selection change.
+
+https://github.com/user-attachments/assets/1087672e-49e8-4463-813a-0d9c7b162921
+
+> Remarks:
+> `ScrollView`, items are animated `Pressable` components.
 
 ## Performance
 
@@ -352,18 +567,23 @@ Performance cost comes from the additional logic added in response to changes in
 > - Certain components and properties are more costly to animate than others
 > - Don't animate too many things at once
 
+| Animations off                                                                                 |  Animations on                                                                                 |
+|------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| <video src="https://github.com/user-attachments/assets/4bba5139-6a50-4af5-a629-c18e65cad2fb"/> | <video src="https://github.com/user-attachments/assets/1c38d0c1-4a31-4bf9-ad30-b4f01e6a3523"/> |
+
+> iPhone 12 mini, React Native running in **dev mode**.
+
 ## Currently Not Supported
 
 - Horizontal lists
 - Inverted lists
 - Lists with dynamic item size
+- Scroll view [zoom](https://reactnative.dev/docs/scrollview#zoomscale-ios)
 - Section lists
-
-Most would be possible to support, except lists with dynamic item size. I'm not sure drag-to-select would make sense there, and the key performance principle of this library is avoiding item measurements.
 
 ## Known Issues
 
-- **Android, new architecture**: In the new architecture, automatic scrolling will lead to the app hanging with an ANR notification. This appears to be a bug with React Native which has been [fixed](https://github.com/facebook/react-native/pull/44725) in 0.77+
+- **Android, new architecture**: In the new architecture, automatic scrolling will lead to the app hanging with an ANR notification. This appears to be a bug with React Native which is [fixed](https://github.com/facebook/react-native/pull/44725) in 0.77+
 
 ## Development
 
