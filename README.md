@@ -143,12 +143,14 @@ interface Config<ListItem> {
     numColumns?: number
     /**
      * Amount of horizontal space between rows.
+     * @default 0
      */
-    rowGap: number
+    rowGap?: number
     /**
      * Amount of vertical space between columns.
+     * @default 0
      */
-    columnGap: number
+    columnGap?: number
     /**
      * Height and width of each item in the list.
      */
