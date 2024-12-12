@@ -1,9 +1,7 @@
 # 👆 Drag Select for React Native
 
-<p>
-  <img src="./docs/assets/hero_2.gif" width="250px" />
-  &nbsp;
-  <img src="./docs/assets/hero_1.gif" width="250px" />
+<p align="center">
+  <img src="./docs/assets/hero.gif" width="500px" />
 </p>
 
 A utility for creating a pan gesture that auto-selects items in a list, like your favorite gallery app.
@@ -15,10 +13,10 @@ A utility for creating a pan gesture that auto-selects items in a list, like you
 - Works with typical scrollable views - [`ScrollView`](https://reactnative.dev/docs/scrollview), [`FlatList`](https://reactnative.dev/docs/flatlist), [`FlashList`](https://shopify.github.io/flash-list/) etc.
 
 > [!IMPORTANT]
-> This package is in public alpha. Breaking changes may occur in any release until v1.0.0
+> This package is in public alpha.
 >
 > <strong>Feedback needed</strong><br/>
-> If something is not working as expected or your use case is [not supported](#currently-not-supported), let me know by submitting an issue. Please check the issues tab for similar feedback before creating a new issue.
+> If something is not working as it's supposed to, let me know by submitting an issue. I'm finalizing the initial API and on the lookout for edge cases before releasing v1.0.0
 
 ## Table of Contents
 
@@ -28,6 +26,7 @@ A utility for creating a pan gesture that auto-selects items in a list, like you
 - [Installation](#installation)
 - [API](#api)
 - [Recipes](#recipes)
+- [Performance](#performance)
 - [Currently Not Supported](#currently-not-supported)
 - [Known Issues](#known-issues)
 - [Development](#development)
@@ -45,7 +44,7 @@ Paste this snippet into your project to get started.
 ```tsx
 import { useDragSelect } from "@osamaq/drag-select"
 
-import { View, Text } from "react-native"
+import { FlatList, View, Text } from "react-native"
 import { GestureDetector } from "react-native-gesture-handler"
 import Animated, { useAnimatedRef, useAnimatedScrollHandler } from "react-native-reanimated"
 
@@ -62,6 +61,7 @@ function List() {
     key: "id",
     list: {
       animatedRef: flatlist,
+      numColumns: 2,
       itemSize: { height: 50, width: 50 },
     },
     onItemSelected: (id, index) => {
@@ -69,6 +69,9 @@ function List() {
     },
     onItemDeselected: (id, index) => {
       console.log("onItemDeselected", { id, index })
+    },
+    onItemPress: (id, index) => {
+      console.log("onItemPress", { id, index })
     },
   })
 
@@ -79,10 +82,11 @@ function List() {
       <Animated.FlatList
         data={data}
         ref={flatlist}
+        numColumns={2}
         onScroll={scrollHandler}
         renderItem={({ item, index }) => (
           <GestureDetector gesture={gestures.createItemPressHandler(item.id, index)}>
-            <View style={{ width: 50, height: 50 }}>
+            <View style={{ width: 50, height: 50, backgroundColor: "salmon" }}>
               <Text>{item.id}</Text>
             </View>
           </GestureDetector>
@@ -567,11 +571,17 @@ Performance cost comes from the additional logic added in response to changes in
 > - Certain components and properties are more costly to animate than others
 > - Don't animate too many things at once
 
-| Animations off                                                                                 |  Animations on                                                                                 |
-|------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
-| <video src="https://github.com/user-attachments/assets/4bba5139-6a50-4af5-a629-c18e65cad2fb"/> | <video src="https://github.com/user-attachments/assets/1c38d0c1-4a31-4bf9-ad30-b4f01e6a3523"/> |
+<details>
+<summary>Show video: <strong>Animations off</strong></summary>
+<video src="https://github.com/user-attachments/assets/03b52a04-63c8-417e-a413-6731efa972b7"/>
+</details>
 
-> iPhone 12 mini, React Native running in **dev mode**.
+<details>
+<summary>Show video: <strong>Animations on</strong></summary>
+<video src="https://github.com/user-attachments/assets/c9380c81-1cfb-492e-9d66-a4845828200a"/>
+</details>
+
+> Running on iPhone 12 mini in **dev mode**.
 
 ## Currently Not Supported
 
