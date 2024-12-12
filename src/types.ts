@@ -212,5 +212,40 @@ export interface DragSelect {
      * A mapping between selected item IDs and their indices.
      */
     items: DerivedValue<Record<string, number>>
+    /**
+     * Counterpart API for the UI thread.
+     */
+    ui: {
+      /**
+       * Add an item to selection. When there are no selected items, adding a single item to selection activates selection mode.
+       *
+       * Must be invoked on the UI thread.
+       * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+       */
+      add: (id: string) => void
+      /**
+       * Clear all selected items. Clearing selected items automatically deactivates selection mode.
+       * Note that this does not trigger {@link Config.onItemDeselected}.
+       *
+       * Must be invoked on the UI thread.
+       * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+       */
+      clear: () => void
+      /**
+       * Remove an item from selection.
+       * When the last item is removed from selection, selection mode is deactivated.
+       *
+       * Must be invoked on the UI thread.
+       * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+       */
+      delete: (id: string) => void
+      /**
+       * Indicates whether an item is selected.
+       *
+       * Must be invoked on the UI thread.
+       * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
+       */
+      has: (id: string) => boolean
+    }
   }
 }

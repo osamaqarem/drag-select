@@ -498,16 +498,24 @@ export function useDragSelect<ListItem extends Record<string, any>>(
   const selectionHas = (id: string) => {
     return selectedItemMap.value[id] !== undefined
   }
+  const selectionHasOnUI = (id: string) => {
+    "worklet"
+    return selectedItemMap.value[id] !== undefined
+  }
 
-  const selectJS = (id: string) => {
+  const selectOnJS = (id: string) => {
     runOnUI(select)(id)
   }
 
   const selectionClear = () => {
     selectedItemMap.value = {}
   }
+  const selectionClearOnUI = () => {
+    "worklet"
+    selectedItemMap.value = {}
+  }
 
-  const deselectJS = (id: string) => {
+  const deselectOnJS = (id: string) => {
     if (!selectionHas(id)) return false
     runOnUI(deselect)(id)
     return true
@@ -521,12 +529,18 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     },
     selection: {
       active: selectModeActive,
-      add: selectJS,
+      add: selectOnJS,
       clear: selectionClear,
-      delete: deselectJS,
+      delete: deselectOnJS,
       has: selectionHas,
       size: selectionSize,
       items: selectedItemMap,
+      ui: {
+        add: select,
+        delete: deselect,
+        clear: selectionClearOnUI,
+        has: selectionHasOnUI,
+      },
     },
   }
 }
