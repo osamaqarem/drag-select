@@ -17,7 +17,7 @@ import type { Config, DragSelect } from "./types"
 
 export function useDragSelect<ListItem extends Record<string, any>>(
   config: Config<ListItem>
-): DragSelect<ListItem> {
+): DragSelect {
   const {
     data,
     key: keyPath,
@@ -470,14 +470,14 @@ export function useDragSelect<ListItem extends Record<string, any>>(
       runOnJS(setFrameCbActive)(false)
     })
 
-  function createItemPressHandler(item: ListItem, index: number) {
+  function createItemPressHandler(id: string, index: number) {
     const tapGesture = Gesture.Tap()
-      .maxDuration(longPressMinDurationMs)
-      .onStart(() => tapOnStart(getId(item), index))
+      .maxDuration(longPressMinDurationMs - 1)
+      .onStart(() => tapOnStart(id, index))
 
     const longPressGesture = Gesture.LongPress()
       .minDuration(longPressMinDurationMs)
-      .onStart(() => longPressOnStart(getId(item)))
+      .onStart(() => longPressOnStart(id))
       .simultaneousWithExternalGesture(panHandler)
       .enabled(longPressGestureEnabled)
 

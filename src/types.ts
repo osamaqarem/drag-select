@@ -6,7 +6,7 @@ import type { AnimatedRef, DerivedValue } from "react-native-reanimated"
 import type { ReanimatedScrollEvent } from "react-native-reanimated/lib/typescript/hook/commonTypes"
 import type { PropertyPaths } from "./property-paths"
 
-export interface Config<ListItem> {
+export interface Config<ListItem = unknown> {
   /**
    * The same array of items rendered on screen in a scrollable view.
    */
@@ -120,20 +120,21 @@ export interface Config<ListItem> {
   }
   /**
    * Invoked on the JS thread whenever an item is tapped, but not added to selection.
-   * Use this callback to handle press events instead of wrapping items in a pressable component.
+   *
+   * You may still wrap items with your own pressable while still using this callback to handle presses. This should be more convenient than managing button `disabled` state based on whether selection mode manually.
    */
-  onItemPress?: (item: string, index: number) => void
+  onItemPress?: (id: string, index: number) => void
   /**
    * Invoked on the JS thread whenever an item is added to selection.
    */
-  onItemSelected?: (item: string, index: number) => void
+  onItemSelected?: (id: string, index: number) => void
   /**
    * Invoked on the JS thread whenever an item is removed from selection.
    */
-  onItemDeselected?: (item: string, index: number) => void
+  onItemDeselected?: (id: string, index: number) => void
 }
 
-export interface DragSelect<ListItem> {
+export interface DragSelect {
   /**
    * Must be used with [`useAnimatedScrollHandler`](https://docs.swmansion.com/react-native-reanimated/docs/scroll/useAnimatedScrollHandler)
    * and passed to the animated list to use the pan-scroll gesture.
@@ -155,10 +156,7 @@ export interface DragSelect<ListItem> {
      * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own.
      *
      */
-    createItemPressHandler: (
-      item: ListItem,
-      index: number
-    ) => SimultaneousGesture
+    createItemPressHandler: (id: string, index: number) => SimultaneousGesture
     /**
      * This is a single [pan gesture](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/pan-gesture).
      * If you need to rely solely on pressing items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`. See {@link Config.panScrollGesture}.

@@ -66,7 +66,7 @@ function List() {
         ItemSeparatorComponent={<View style={{ height: 30 }} />}
         onScroll={scrollHandler}
         renderItem={({ item, index }) => (
-          <GestureDetector gesture={gestures.createItemPressHandler(item, index)}>
+          <GestureDetector gesture={gestures.createItemPressHandler(item.id, index)}>
             <View style={{ width: 50, height: 50 }}>
               <Text>{item.id}</Text>
             </View>

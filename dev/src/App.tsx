@@ -75,14 +75,14 @@ function List() {
       },
     },
     panScrollGesture: { enabled: false },
-    onItemPress: (item) => {
-      console.log("onItemPress", item.id)
+    onItemPress: (id) => {
+      console.log("onItemPress", id)
     },
-    onItemSelected: (item) => {
-      console.log("onItemSelected", item.id)
+    onItemSelected: (id) => {
+      console.log("onItemSelected", id)
     },
-    onItemDeselected: (item) => {
-      console.log("onItemDeselected", item.id)
+    onItemDeselected: (id) => {
+      console.log("onItemDeselected", id)
     },
   })
 
@@ -111,7 +111,7 @@ function List() {
           columnWrapperStyle={styles.columnWrapper}
           renderItem={({ item, index }) => (
             <GestureDetector
-              gesture={gestures.createItemPressHandler(item, index)}
+              gesture={gestures.createItemPressHandler(item.id, index)}
             >
               <View style={styles.item}>
                 <Text>{item.id}</Text>

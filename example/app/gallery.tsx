@@ -126,7 +126,7 @@ export default function List() {
           renderItem={({ item, index }) => {
             return (
               <GestureDetector
-                gesture={gestures.createItemPressHandler(item, index)}
+                gesture={gestures.createItemPressHandler(item.id, index)}
               >
                 <ListItem
                   id={item.id}
