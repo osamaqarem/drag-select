@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.0",
+    "@faker-js/faker": "9.3.0",
     "@react-navigation/drawer": "7.0.19",
     "expo": "~52.0.7",
     "expo-blur": "~14.0.1",

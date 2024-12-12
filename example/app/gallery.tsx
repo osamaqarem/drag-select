@@ -1,4 +1,4 @@
-import { useDragSelect } from "@osamaq/drag-select"
+import { useDragSelect, type DragSelect } from "@osamaq/drag-select"
 import { BlurView } from "expo-blur"
 import * as Haptics from "expo-haptics"
 import { Image as ExpoImage } from "expo-image"
@@ -8,7 +8,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
   type TextInputProps,
 } from "react-native"
@@ -22,9 +21,9 @@ import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
   withTiming,
-  type SharedValue,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { AnimatedText } from "../components/animated-text"
 
 interface Item {
   id: string
@@ -83,18 +82,18 @@ export default function List() {
 
   const panelVisibilityAnimatedStyle = useAnimatedStyle(() => {
     return {
-      pointerEvents: selection.size.value > 0 ? "auto" : "none",
-      opacity: selection.size.value > 0 ? 1 : 0,
+      pointerEvents: selection.active.value ? "auto" : "none",
+      opacity: selection.active.value ? 1 : 0,
     }
   })
 
-  const animatedTextProps = useAnimatedProps(() => {
+  const textAnimatedProps = useAnimatedProps(() => {
     return {
       text: selection.size.value.toString(),
     } as TextInputProps
   })
 
-  // Haptic feedback when selection changes.
+  // Haptic feedback on selection change
   useAnimatedReaction(
     () => selection.size.value,
     (next, prev) => {
@@ -128,11 +127,7 @@ export default function List() {
               <GestureDetector
                 gesture={gestures.createItemPressHandler(item.id, index)}
               >
-                <ListItem
-                  id={item.id}
-                  imgUrl={item.imageUrl}
-                  selectedItems={selection.items}
-                />
+                <ListItem {...item} selection={selection} />
               </GestureDetector>
             )
           }}
@@ -162,11 +157,10 @@ export default function List() {
             source={require("../assets/x-mark.svg")}
             style={styles.clearBtnIcon}
           />
-          <AnimatedTextInput
-            animatedProps={animatedTextProps}
+          <AnimatedText
             defaultValue="0"
+            animatedProps={textAnimatedProps}
             style={styles.clearBtnText}
-            editable={false}
           />
         </BlurView>
       </AnimatedPressable>
@@ -229,18 +223,18 @@ const timing = {
 
 const ListItem = ({
   id,
-  imgUrl,
-  selectedItems,
+  imageUrl,
+  selection,
 }: {
   id: string
-  imgUrl: string
-  selectedItems: SharedValue<Record<string, number>>
+  imageUrl: string
+  selection: DragSelect["selection"]
 }) => {
   const animatedStyle = useAnimatedStyle(() => {
-    const isSelected = selectedItems.value[id] !== undefined
+    const isSelected = selection.ui.has(id)
     return {
       padding: withTiming(isSelected ? 4 : 0, timing),
-      opacity: isSelected ? 0.6 : 1,
+      opacity: withTiming(isSelected ? 0.6 : 1, { duration: 1 }),
       transform: [
         {
           scale: withTiming(isSelected ? 0.9 : 1, timing),
@@ -251,12 +245,11 @@ const ListItem = ({
 
   return (
     <Animated.View style={[styles.imageContainer, animatedStyle]}>
-      <Animated.Image style={styles.image} source={{ uri: imgUrl }} />
+      <Animated.Image style={styles.image} source={{ uri: imageUrl }} />
     </Animated.View>
   )
 }
 
-const AnimatedTextInput = Animated.createAnimatedComponent(TextInput)
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 const styles = StyleSheet.create({
@@ -300,7 +293,6 @@ const styles = StyleSheet.create({
   clearBtnText: {
     height: "100%",
     minWidth: 45,
-    pointerEvents: "none",
     color: "#EDEEF0",
     fontSize: 14,
     paddingLeft: 10,
