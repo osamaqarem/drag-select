@@ -20,16 +20,33 @@ A utility for creating a pan gesture that auto-selects items in a list, like you
 
 ## Table of Contents
 
+- [Installation](#installation)
 - [Usage](#usage)
   - [Quickstart](#quickstart)
   - [Step-by-step](#step-by-step)
-- [Installation](#installation)
 - [API](#api)
 - [Recipes](#recipes)
 - [Performance](#performance)
 - [Currently Not Supported](#currently-not-supported)
 - [Known Issues](#known-issues)
 - [Development](#development)
+
+## Installation
+
+> [!IMPORTANT]
+> This package requires [Reanimated v3](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started/#installation) and [Gesture Handler v2](https://docs.swmansion.com/react-native-gesture-handler/docs/fundamentals/installation/).
+
+```sh
+npm install @osamaq/drag-select
+```
+
+```sh
+yarn add @osamaq/drag-select
+```
+
+```sh
+pnpm add @osamaq/drag-select
+```
 
 ## Usage
 
@@ -254,22 +271,6 @@ The rest is up to you!
 
 Check out [recipes](#recipes) for more fleshed out examples.
 
-## Installation
-
-> [!IMPORTANT]
-> This package requires [Reanimated v3](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started/#installation) and [Gesture Handler v2](https://docs.swmansion.com/react-native-gesture-handler/docs/fundamentals/installation/).
-
-```sh
-npm install @osamaq/drag-select
-```
-
-```sh
-yarn add @osamaq/drag-select
-```
-
-```sh
-pnpm add @osamaq/drag-select
-```
 
 ## API
 
