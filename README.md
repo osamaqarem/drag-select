@@ -392,15 +392,10 @@ interface DragSelect {
 
 The [recipes app](./example/README.md) contains sample integrations of drag-select.
 
-https://github.com/user-attachments/assets/0e5697d2-aaf8-4888-bfc6-8186f5b0d04b
-
-> Remarks:
-> `FlatList`, haptic feedback on selection change.
-
-https://github.com/user-attachments/assets/1087672e-49e8-4463-813a-0d9c7b162921
-
-> Remarks:
-> `ScrollView`, items are animated `Pressable` components.
+| Sample                                                                                         | Remarks                                                                       |
+| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| <video src="https://github.com/user-attachments/assets/38907cfb-ae15-4c5b-9397-d0bf951bd2ad"/> | Example of a `FlatList` integration.<br/>Has haptic feedback on selection change. |
+| <video src="https://github.com/user-attachments/assets/e16926f4-f9f9-4927-98d4-dc85383259ec"/> | Example of a `ScrollView` integration.<br/>List items are animated `Pressable` components.    |
 
 ## Performance
 
@@ -414,15 +409,10 @@ Performance cost comes from the additional logic added in response to changes in
 > - Certain components and properties are more costly to animate than others
 > - Don't animate too many things at once
 
-<details>
-<summary>Show video: <strong>Animations off</strong></summary>
-<video src="https://github.com/user-attachments/assets/03b52a04-63c8-417e-a413-6731efa972b7"/>
-</details>
+| Animations off                                                                                 | Animations on                                                                                  |
+| ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| <video src="https://github.com/user-attachments/assets/03b52a04-63c8-417e-a413-6731efa972b7"/> | <video src="https://github.com/user-attachments/assets/c9380c81-1cfb-492e-9d66-a4845828200a"/> |
 
-<details>
-<summary>Show video: <strong>Animations on</strong></summary>
-<video src="https://github.com/user-attachments/assets/c9380c81-1cfb-492e-9d66-a4845828200a"/>
-</details>
 
 > Running on iPhone 12 mini in **dev mode**.
 
