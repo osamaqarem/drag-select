@@ -178,7 +178,7 @@ interface Config<ListItem = unknown> {
       height: number
     }
     /**
-     * Inner distance between edges of the list container and list items.
+     * Inner distance between edges of the list and its items.
      * Use this to account for list headers/footers and/or padding.
      */
     contentInset?: {
@@ -190,7 +190,6 @@ interface Config<ListItem = unknown> {
   }
   /**
    * Configuration for the long press gesture. Long pressing an item activates selection mode.
-   * When selection mode is active, tapping any item will add or remove it from selection.
    */
   longPressGesture?: {
     /**
@@ -205,23 +204,24 @@ interface Config<ListItem = unknown> {
     minDurationMs?: number
   }
   /**
-   * Configuration for automatic scrolling while panning gesture.
+   * Configuration for automatic scrolling.
+   * Automatic scrolling happens when panning near the scrolling edge of the list.
    */
   panScrollGesture?: {
     /**
-     * Whether pan-scrolling is enabled.
+     * Whether automatic scrolling is enabled.
      * @default true
      */
     enabled?: boolean
     /**
      * How close should the pointer be to the start of the list before **inverse** scrolling begins.
-     * A value between 0 and 1 where 1 is equal to the height of the list.
+     * A value between 0 and 1 where 1 is equal to the height of the list window.
      * @default 0.15
      */
     startThreshold?: number
     /**
      * How close should the pointer be to the end of the list before scrolling begins.
-     * A value between 0 and 1 where 1 is equal to the height of the list.
+     * A value between 0 and 1 where 1 is equal to the height of the list window.
      * @default 0.85
      */
     endThreshold?: number
@@ -244,8 +244,7 @@ interface Config<ListItem = unknown> {
   }
   /**
    * Invoked on the JS thread whenever an item is tapped, but not added to selection.
-   *
-   * You may still wrap items with your own pressable while still using this callback to handle presses. This should be more convenient than managing button `disabled` state based on whether selection mode manually.
+   * You may still wrap items with your own pressable component while using this callback to handle the press event.
    */
   onItemPress?: (id: string, index: number) => void
   /**
@@ -272,7 +271,7 @@ interface Config<ListItem = unknown> {
 interface DragSelect {
   /**
    * Must be used with [`useAnimatedScrollHandler`](https://docs.swmansion.com/react-native-reanimated/docs/scroll/useAnimatedScrollHandler)
-   * and passed to the animated list to use the pan-scroll gesture.
+   * and passed to the animated list to use automatic scrolling.
    * Used to obtain scroll offset and list window size.
    *
    * @example
@@ -289,7 +288,6 @@ interface DragSelect {
      *
      * Do not customize the behavior of this gesture directly.
      * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own.
-     *
      */
     createItemPressHandler: (id: string, index: number) => SimultaneousGesture
     /**
@@ -304,39 +302,35 @@ interface DragSelect {
   selection: {
     /**
      * Whether the selection mode is active.
+     * Selection mode is active when there are any selected items.
      *
      * When active, tapping list items will add them or remove them from selection.
      * Config callbacks {@link Config.onItemSelected} and {@link Config.onItemDeselected} will be invoked instead of {@link Config.onItemPress}.
      */
     active: DerivedValue<boolean>
     /**
-     * Add an item to selection. When there are no selected items, adding a single item to selection activates selection mode.
+     * Add an item to selection.
      *
      * Must be invoked on the JS thread.
-     * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
      */
     add: (id: string) => void
     /**
-     * Clear all selected items. Clearing selected items automatically deactivates selection mode.
+     * Clear all selected items.
      * Note that this does not trigger {@link Config.onItemDeselected}.
      *
      * Must be invoked on the JS thread.
-     * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
      */
     clear: () => void
     /**
      * Remove an item from selection.
-     * When the last item is removed from selection, selection mode is deactivated.
      *
      * Must be invoked on the JS thread.
-     * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
      */
     delete: (id: string) => void
     /**
      * Indicates whether an item is selected.
      *
      * Must be invoked on the JS thread.
-     * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
      */
     has: (id: string) => boolean
     /**
@@ -349,36 +343,32 @@ interface DragSelect {
     items: DerivedValue<Record<string, number>>
     /**
      * Counterpart API for the UI thread.
+     * Note that selection changes are reflected asynchronously on the JS thread and synchronously on the UI thread.
      */
     ui: {
       /**
-       * Add an item to selection. When there are no selected items, adding a single item to selection activates selection mode.
+       * Add an item to selection.
        *
        * Must be invoked on the UI thread.
-       * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
        */
       add: (id: string) => void
       /**
-       * Clear all selected items. Clearing selected items automatically deactivates selection mode.
+       * Clear all selected items.
        * Note that this does not trigger {@link Config.onItemDeselected}.
        *
        * Must be invoked on the UI thread.
-       * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
        */
       clear: () => void
       /**
        * Remove an item from selection.
-       * When the last item is removed from selection, selection mode is deactivated.
        *
        * Must be invoked on the UI thread.
-       * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
        */
       delete: (id: string) => void
       /**
        * Indicates whether an item is selected.
        *
        * Must be invoked on the UI thread.
-       * Note that updates are reflected asynchronously on the JS thread and synchronously on the UI thread.
        */
       has: (id: string) => boolean
     }
@@ -430,9 +420,10 @@ Performance cost comes from the additional logic added in response to changes in
 
 ## Development
 
-This project uses [pnpm](https://pnpm.io/installation).
+This project uses pnpm. You can install it [here](https://pnpm.io/installation) or through [Corepack](https://www.totaltypescript.com/how-to-use-corepack).
 
 ```sh
+# install dependencies and start the dev app server
 pnpm install
 pnpm dev start
 ```

@@ -139,5 +139,5 @@ You can now drag-to-select. The rest of the UI is up to you! Check out [recipes]
 
 > [!TIP]
 >
-> - Use methods on the `selection` object to imperatively `add`, `delete` or `clear` items
-> - Use `selection.items` shared value to drive animations with Reanimated
+> - Use methods on the `selection` object to imperatively `add`, `delete` or `clear` items etc.
+> - Invoke `selection.ui.has` in [`useAnimatedStyle`](https://docs.swmansion.com/react-native-reanimated/docs/core/useAnimatedStyle/) to drive item animations
