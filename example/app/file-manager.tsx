@@ -27,20 +27,28 @@ const ROW_GAP = 50
 const COL_GAP = 24
 const NUM_COL = 3
 
-const paddingHorizontal = 0
-const listWidth = windowWidth - paddingHorizontal * 2
+const listWidth = windowWidth
 
 const ITEM_WIDTH = (listWidth - COL_GAP * (NUM_COL - 1)) / NUM_COL
 const ITEM_HEIGHT = 130
 
 const data = Array.from({ length: 50 }).map((_, index) => {
   const isFolder = Math.random() > 0.5
+  if (isFolder) {
+    return {
+      id: `file_${index}`,
+      type: "folder",
+      name: faker.system.directoryPath(),
+      updatedAt: faker.date.recent(),
+      subDirCount: faker.number.int({ max: 30, min: 1 }),
+    } as const
+  }
   return {
     id: `file_${index}`,
-    type: isFolder ? "folder" : "file",
-    name: isFolder ? faker.system.directoryPath() : faker.system.fileName(),
+    type: "file",
+    name: faker.system.fileName(),
     updatedAt: faker.date.recent(),
-    subDirCount: isFolder ? faker.number.int({ max: 30, min: 1 }) : null,
+    subDirCount: null,
   } as const
 })
 
@@ -63,8 +71,6 @@ export default function FileManager() {
       contentInset: {
         top: paddingTop,
         bottom: safeArea.bottom,
-        right: paddingHorizontal,
-        left: paddingHorizontal,
       },
     },
     onItemSelected: (id, index) => {
@@ -138,9 +144,9 @@ export default function FileManager() {
           <View style={styles.flex} />
           <AnimatedText
             animatedProps={textAnimatedProps}
-            style={styles.clearBtnText}
+            style={styles.selectionSizeText}
           />
-          <Pressable onPress={selection.clear} style={styles.clearBtn}>
+          <Pressable onPress={selection.clear} style={styles.doneBtn}>
             <Text style={styles.doneBtnText}>Done</Text>
           </Pressable>
         </BlurView>
@@ -197,7 +203,6 @@ function ListItem({
 
 const styles = StyleSheet.create({
   scrollViewContent: {
-    paddingHorizontal,
     rowGap: ROW_GAP,
     columnGap: COL_GAP,
     flexGrow: 1,
@@ -213,7 +218,7 @@ const styles = StyleSheet.create({
     top: 0,
     width: "100%",
   },
-  clearBtnText: {
+  selectionSizeText: {
     flex: 1,
     textAlign: "center",
     color: "#EDEEF0",
@@ -257,7 +262,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 10,
   },
-  clearBtn: {
+  doneBtn: {
     flex: 1,
     justifyContent: "center",
     alignItems: "flex-end",
