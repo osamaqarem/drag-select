@@ -445,9 +445,7 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     () =>
       Gesture.Pan()
         .maxPointers(1)
-        .activateAfterLongPress(
-          selectModeActive.value ? 0 : longPressMinDurationMs
-        )
+        .activateAfterLongPress(longPressMinDurationMs)
         .onStart(() => {
           measureListLayout()
           runOnJS(setFrameCbActive)(true)
@@ -470,7 +468,6 @@ export function useDragSelect<ListItem extends Record<string, any>>(
       measureListLayout,
       panEvent,
       panTransitionFromIndex,
-      selectModeActive,
       setFrameCbActive,
     ]
   )
