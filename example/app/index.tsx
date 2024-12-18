@@ -1,7 +1,9 @@
-import { Link } from "expo-router"
+import { Link, Redirect } from "expo-router"
 import { Pressable, StyleSheet, Text, View } from "react-native"
 
 export default function Recipes() {
+  return <Redirect href="/github-contributions" />
+
   return (
     <View style={styles.root}>
       <View style={styles.header}>
@@ -15,9 +17,16 @@ export default function Recipes() {
             <Text style={styles.cardText}>Photo Gallery</Text>
           </Pressable>
         </Link>
+
         <Link style={styles.card} href="/file-manager" asChild>
           <Pressable>
             <Text style={styles.cardText}>File Manager</Text>
+          </Pressable>
+        </Link>
+
+        <Link style={styles.card} href="/github-contributions" asChild>
+          <Pressable>
+            <Text style={styles.cardText}>GitHub Contributions</Text>
           </Pressable>
         </Link>
       </View>
@@ -46,13 +55,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: "row",
-    justifyContent: "space-between",
     flexWrap: "wrap",
-    gap: 30,
+    columnGap: "10%",
+    rowGap: 40,
   },
   card: {
     height: 60,
-    width: 140,
+    width: "45%",
+    paddingHorizontal: 4,
     backgroundColor: "#2c2c2c",
     borderRadius: 10,
     justifyContent: "center",
