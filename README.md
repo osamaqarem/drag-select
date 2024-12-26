@@ -157,9 +157,21 @@ interface Config<ListItem = unknown> {
     animatedRef: AnimatedRef<any>
     /**
      * Number of columns in the list.
+     * This only matters for vertical lists.
      * @default 1
      */
     numColumns?: number
+    /**
+     * Number of rows in the list.
+     * This only matters for horizontal lists.
+     * @default 1
+     */
+    numRows?: number
+    /**
+     * Whether the list is horizontal.
+     * @default false
+     */
+    horizontal?: boolean
     /**
      * Amount of horizontal space between rows.
      * @default 0
@@ -205,7 +217,7 @@ interface Config<ListItem = unknown> {
   }
   /**
    * Configuration for automatic scrolling.
-   * Automatic scrolling happens when panning near the scrolling edge of the list.
+   * This occurs when panning near scrolling edges of the list.
    */
   panScrollGesture?: {
     /**
@@ -408,7 +420,6 @@ Performance cost comes from the additional logic added in response to changes in
 
 ## Currently Not Supported
 
-- Horizontal lists
 - Inverted lists
 - Lists with dynamic item size
 - Scroll view [zoom](https://reactnative.dev/docs/scrollview#zoomscale-ios)
