@@ -33,9 +33,21 @@ export interface Config<ListItem = unknown> {
     animatedRef: AnimatedRef<any>
     /**
      * Number of columns in the list.
+     * This only matters for vertical lists.
      * @default 1
      */
     numColumns?: number
+    /**
+     * Number of rows in the list.
+     * This only matters for horizontal lists.
+     * @default 1
+     */
+    numRows?: number
+    /**
+     * Whether the list is horizontal.
+     * @default false
+     */
+    horizontal?: boolean
     /**
      * Amount of horizontal space between rows.
      * @default 0
