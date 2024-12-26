@@ -27,7 +27,7 @@ const ROW_GAP = 50
 const COL_GAP = 24
 const NUM_COL = 3
 
-const listWidth = windowWidth
+const listWidth = windowWidth * 0.95
 
 const ITEM_WIDTH = (listWidth - COL_GAP * (NUM_COL - 1)) / NUM_COL
 const ITEM_HEIGHT = 130
@@ -208,6 +208,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: "center",
   },
   item: {
     width: ITEM_WIDTH,
