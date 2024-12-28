@@ -245,14 +245,14 @@ export function useDragSelect<ListItem extends Record<string, any>>(
         : firstFullyVisibleColumnStart + index * cellWidth
       minX = index === 0 && isFirstColumnCutOff ? 0 : minX
 
-      let maxX = minX + itemWidth
+      let maxX = minX + cellWidth
       maxX =
         index === 0 && isFirstColumnCutOff ? firstColumnWidthRemainder : maxX
 
       const actualItemWidth =
         index === 0 && isFirstColumnCutOff
           ? firstColumnWidthRemainder
-          : itemWidth
+          : cellWidth
       return {
         minX,
         maxX,
@@ -266,11 +266,11 @@ export function useDragSelect<ListItem extends Record<string, any>>(
         : firstFullyVisibleRowStart + index * cellHeight
       minY = index === 0 && isFirstRowCutOff ? 0 : minY
 
-      let maxY = minY + itemHeight
+      let maxY = minY + cellHeight
       maxY = index === 0 && isFirstRowCutOff ? firstRowHeightRemainder : maxY
 
       const actualItemHeight =
-        index === 0 && isFirstRowCutOff ? firstRowHeightRemainder : itemHeight
+        index === 0 && isFirstRowCutOff ? firstRowHeightRemainder : cellHeight
       return {
         minY,
         maxY,
