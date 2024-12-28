@@ -63,9 +63,9 @@ export default function List() {
         bottom: bottomPadding,
       },
     },
-    panScrollGesture: {
+    panGesture: {
       enabled: Platform.OS === "ios",
-      endThreshold: 0.65,
+      scrollEndThreshold: 0.65,
     },
     onItemPress: (id, index) => {
       console.log("onItemPress", { id, index })

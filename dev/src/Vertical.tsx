@@ -58,7 +58,7 @@ export function VerticalList() {
         right: paddingHorizontal,
       },
     },
-    panScrollGesture: { enabled: false },
+    panGesture: { enabled: false },
     onItemPress: (id) => {
       console.log("onItemPress", id)
     },

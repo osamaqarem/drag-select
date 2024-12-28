@@ -254,6 +254,13 @@ interface Config<ListItem = unknown> {
      */
     endMaxVelocity?: number
   }
+  tapGesture?: {
+    /**
+     * Whether tapping an item while selection mode is active should add or remove it from selection.
+     * @default true
+     */
+    selectOnTapEnabled: boolean
+  }
   /**
    * Invoked on the JS thread whenever an item is tapped, but not added to selection.
    * You may still wrap items with your own pressable component while using this callback to handle the press event.

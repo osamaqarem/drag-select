@@ -95,24 +95,29 @@ export interface Config<ListItem = unknown> {
    * Configuration for automatic scrolling.
    * This occurs when panning near scrolling edges of the list.
    */
-  panScrollGesture?: {
+  panGesture?: {
+    /**
+     * When `true`, selection is cleared each time the pan gesture starts again.
+     * @default false
+     */
+    resetSelectionOnStart?: boolean
     /**
      * Whether automatic scrolling is enabled.
      * @default true
      */
-    enabled?: boolean
+    scrollEnabled?: boolean
     /**
      * How close should the pointer be to the start of the list before **inverse** scrolling begins.
      * A value between 0 and 1 where 1 is equal to the height of the list window.
      * @default 0.15
      */
-    startThreshold?: number
+    scrollStartThreshold?: number
     /**
      * How close should the pointer be to the end of the list before scrolling begins.
      * A value between 0 and 1 where 1 is equal to the height of the list window.
      * @default 0.85
      */
-    endThreshold?: number
+    scrollEndThreshold?: number
     /**
      * The maximum scrolling speed when the pointer is near the starting edge of the list window.
      * Must be higher than 0.
@@ -120,7 +125,7 @@ export interface Config<ListItem = unknown> {
      *  - 8 on iOS
      *  - 1 on Android
      */
-    startMaxVelocity?: number
+    scrollStartMaxVelocity?: number
     /**
      * The maximum scrolling speed when the pointer is at the ending edge of the list window.
      * Must be higher than 0.
@@ -128,7 +133,14 @@ export interface Config<ListItem = unknown> {
      *  - 8 on iOS
      *  - 1 on Android
      */
-    endMaxVelocity?: number
+    scrollEndMaxVelocity?: number
+  }
+  tapGesture?: {
+    /**
+     * Whether tapping an item while selection mode is active should add or remove it from selection.
+     * @default true
+     */
+    selectOnTapEnabled: boolean
   }
   /**
    * Invoked on the JS thread whenever an item is tapped, but not added to selection.
@@ -169,7 +181,7 @@ export interface DragSelect {
     createItemPressHandler: (id: string, index: number) => SimultaneousGesture
     /**
      * This is a single [pan gesture](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/pan-gesture).
-     * If you need to rely solely on pressing items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`. See {@link Config.panScrollGesture}.
+     * If you need to rely solely on pressing items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`. See {@link Config.panGesture}.
      *
      * Do not customize the behavior of this gesture directly.
      * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own.
