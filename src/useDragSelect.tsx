@@ -51,18 +51,22 @@ export function useDragSelect<ListItem extends Record<string, any>>(
   } = config.longPressGesture ?? {}
 
   const {
-    enabled: panScrollEnabled = true,
-    endThreshold: panScrollEndThreshold = 0.85,
-    startThreshold: panScrollStartThreshold = 0.15,
-    endMaxVelocity: panScrollEndMaxVelocity = Platform.select({
+    resetSelectionOnStart: panResetSelectionOnStart = false,
+    scrollEnabled: panScrollEnabled = true,
+    scrollEndThreshold: panScrollEndThreshold = 0.85,
+    scrollStartThreshold: panScrollStartThreshold = 0.15,
+    scrollEndMaxVelocity: panScrollEndMaxVelocity = Platform.select({
       default: 8,
       android: 1,
     }),
-    startMaxVelocity: panScrollStartMaxVelocity = Platform.select({
+    scrollStartMaxVelocity: panScrollStartMaxVelocity = Platform.select({
       default: 8,
       android: 1,
     }),
-  } = config.panScrollGesture ?? {}
+  } = config.panGesture ?? {}
+
+  const { selectOnTapEnabled: tapGestureSelectOnTapEnabled = true } =
+    config.tapGesture ?? {}
 
   function getId(item: ListItem) {
     "worklet"
@@ -134,6 +138,11 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     })
     if (onItemDeselected) runOnJS(onItemDeselected)(id, itemIndex)
   }
+
+  const selectionClear = useCallback(() => {
+    "worklet"
+    selectedItemMap.value = {}
+  }, [selectedItemMap])
 
   function handleDragSelect(e: NonNullable<typeof panEvent.value>) {
     "worklet"
@@ -512,7 +521,7 @@ export function useDragSelect<ListItem extends Record<string, any>>(
   function tapOnStart(id: string, index: number) {
     "worklet"
     if (!itemIndexById.value.has(id)) return
-    if (selectModeActive.value) {
+    if (tapGestureSelectOnTapEnabled && selectModeActive.value) {
       const inSelection = selectedItemMap.value[id]
       if (inSelection !== undefined) {
         deselect(id)
@@ -530,6 +539,9 @@ export function useDragSelect<ListItem extends Record<string, any>>(
         .maxPointers(1)
         .activateAfterLongPress(longPressMinDurationMs)
         .onStart(() => {
+          if (panResetSelectionOnStart) {
+            selectionClear()
+          }
           measureListLayout()
           runOnJS(setFrameCbActive)(true)
         })
@@ -550,7 +562,9 @@ export function useDragSelect<ListItem extends Record<string, any>>(
       longPressMinDurationMs,
       measureListLayout,
       panEvent,
+      panResetSelectionOnStart,
       panTransitionFromIndex,
+      selectionClear,
       setFrameCbActive,
     ]
   )
@@ -579,10 +593,10 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     }
   }
 
-  const selectionHas = (id: string) => {
+  const selectionHasOnJS = (id: string) => {
     return selectedItemMap.value[id] !== undefined
   }
-  const selectionHasOnUI = (id: string) => {
+  const selectionHas = (id: string) => {
     "worklet"
     return selectedItemMap.value[id] !== undefined
   }
@@ -591,11 +605,7 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     runOnUI(select)(id)
   }
 
-  const selectionClear = () => {
-    selectedItemMap.value = {}
-  }
-  const selectionClearOnUI = () => {
-    "worklet"
+  const selectionClearOnJS = () => {
     selectedItemMap.value = {}
   }
 
@@ -614,16 +624,16 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     selection: {
       active: selectModeActive,
       add: selectOnJS,
-      clear: selectionClear,
+      clear: selectionClearOnJS,
       delete: deselectOnJS,
-      has: selectionHas,
+      has: selectionHasOnJS,
       size: selectionSize,
       items: selectedItemMap,
       ui: {
         add: select,
         delete: deselect,
-        clear: selectionClearOnUI,
-        has: selectionHasOnUI,
+        clear: selectionClear,
+        has: selectionHas,
       },
     },
   }
