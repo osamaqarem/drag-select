@@ -96,6 +96,10 @@ export default function List() {
   useAnimatedReaction(
     () => selection.size.value,
     (next, prev) => {
+      if (Platform.OS === "web") {
+        return
+      }
+
       const prevVal = prev ?? 0
       if (next !== prevVal) {
         runOnJS(Haptics.selectionAsync)()
