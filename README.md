@@ -12,11 +12,9 @@ A utility for creating a pan gesture that auto-selects items in a list, like you
 - Headless API: Bring your own UI
 - Works with typical scrollable views - [`ScrollView`](https://reactnative.dev/docs/scrollview), [`FlatList`](https://reactnative.dev/docs/flatlist), [`FlashList`](https://shopify.github.io/flash-list/) etc.
 
-> [!IMPORTANT]
-> This package is in public alpha.
->
-> <strong>Feedback needed</strong><br/>
-> If something is not working as it's supposed to, let me know by submitting an issue. I'm finalizing the initial API and on the lookout for edge cases before releasing v1.0.0
+
+> [!TIP]
+> Try it out in an [Expo Snack](https://snack.expo.dev/@osamaqarem/drag-select-example?platform=web)
 
 ## Table of Contents
 
