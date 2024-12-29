@@ -64,7 +64,6 @@ export default function List() {
       },
     },
     panGesture: {
-      enabled: Platform.OS === "ios",
       scrollEndThreshold: 0.65,
     },
     onItemPress: (id, index) => {
