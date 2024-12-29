@@ -512,9 +512,10 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     "worklet"
     const index = itemIndexById.value.get(id)
     if (index === undefined) return
+    axisItem.value = { id, index }
+
     const inSelection = selectedItemMap.value[id]
     if (inSelection !== undefined) return
-    axisItem.value = { id, index }
     select(id)
   }
 
@@ -554,11 +555,13 @@ export function useDragSelect<ListItem extends Record<string, any>>(
           }
         })
         .onEnd(() => {
+          axisItem.value = null
           panTransitionFromIndex.value = null
           panEvent.value = null
           runOnJS(setFrameCbActive)(false)
         }),
     [
+      axisItem,
       longPressMinDurationMs,
       measureListLayout,
       panEvent,
@@ -582,6 +585,8 @@ export function useDragSelect<ListItem extends Record<string, any>>(
       .onStart(() => longPressOnStart(id))
       .simultaneousWithExternalGesture(panHandler)
       .enabled(longPressGestureEnabled)
+      .numberOfPointers(1)
+      .maxDistance(50)
 
     return Gesture.Simultaneous(tapGesture, longPressGesture)
   }
