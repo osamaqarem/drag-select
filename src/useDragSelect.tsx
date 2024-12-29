@@ -570,12 +570,15 @@ export function useDragSelect<ListItem extends Record<string, any>>(
   )
 
   function createItemPressHandler(id: string, index: number) {
+    // The minimum value for either min/max duration for a gesture is 1.
+    const tapGestureMaxDuration = Math.max(longPressMinDurationMs - 1, 1)
+
     const tapGesture = Gesture.Tap()
-      .maxDuration(longPressMinDurationMs - 1)
+      .maxDuration(tapGestureMaxDuration)
       .onStart(() => tapOnStart(id, index))
 
     const longPressGesture = Gesture.LongPress()
-      .minDuration(longPressMinDurationMs)
+      .minDuration(tapGestureMaxDuration + 1)
       .onStart(() => longPressOnStart(id))
       .simultaneousWithExternalGesture(panHandler)
       .enabled(longPressGestureEnabled)
