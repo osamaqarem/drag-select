@@ -27,7 +27,7 @@ const ROW_GAP = 50
 const COL_GAP = 24
 const NUM_COL = 3
 
-const listWidth = windowWidth
+const listWidth = windowWidth * 0.95
 
 const ITEM_WIDTH = (listWidth - COL_GAP * (NUM_COL - 1)) / NUM_COL
 const ITEM_HEIGHT = 130
@@ -107,6 +107,7 @@ export default function FileManager() {
         <Animated.ScrollView
           ref={scrollView}
           onScroll={scrollHandler}
+          style={styles.scrollView}
           contentContainerStyle={[
             styles.scrollViewContent,
             {
@@ -202,10 +203,13 @@ function ListItem({
 }
 
 const styles = StyleSheet.create({
+  scrollView: {
+    width: listWidth,
+    alignSelf: "center",
+  },
   scrollViewContent: {
     rowGap: ROW_GAP,
     columnGap: COL_GAP,
-    flexGrow: 1,
     flexDirection: "row",
     flexWrap: "wrap",
   },
@@ -215,7 +219,6 @@ const styles = StyleSheet.create({
   },
   header: {
     position: "absolute",
-    top: 0,
     width: "100%",
   },
   selectionSizeText: {

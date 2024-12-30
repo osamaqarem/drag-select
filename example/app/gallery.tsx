@@ -64,7 +64,7 @@ export default function List() {
       },
     },
     panGesture: {
-      enabled: Platform.OS === "ios",
+      scrollEnabled: Platform.OS === "ios",
       scrollEndThreshold: 0.65,
     },
     onItemPress: (id, index) => {
@@ -97,6 +97,10 @@ export default function List() {
   useAnimatedReaction(
     () => selection.size.value,
     (next, prev) => {
+      if (Platform.OS === "web") {
+        return
+      }
+
       const prevVal = prev ?? 0
       if (next !== prevVal) {
         runOnJS(Haptics.selectionAsync)()
