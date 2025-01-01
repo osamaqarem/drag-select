@@ -271,12 +271,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 20,
-    minWidth: 300,
+    flex: 1,
     textAlign: "left",
   },
   text: {
     color: "white",
     fontSize: 20,
+    flex: 0.5,
   },
   clearButton: {
     marginTop: 24,
