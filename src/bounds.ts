@@ -142,7 +142,8 @@ export function getBreakpoints(
   listScrollMeta: ListScrollMeta,
   itemSize: number,
   cellSize: number,
-  gap: number
+  gap: number,
+  panInGutter: boolean
 ): Array<number> | null {
   "worklet"
   const rects = Array.from({ length }).map((_, index) => {
@@ -151,7 +152,9 @@ export function getBreakpoints(
       : listScrollMeta.firstFullyVisibleCellStart + index * cellSize
     min = index === 0 && listScrollMeta.isFirstCellCutOff ? 0 : min
 
-    let max = min + cellSize
+    const sizeDimension = panInGutter ? cellSize : itemSize
+
+    let max = min + sizeDimension
     max =
       index === 0 && listScrollMeta.isFirstCellCutOff
         ? listScrollMeta.firstCellSizeRemainder
@@ -160,7 +163,7 @@ export function getBreakpoints(
     const actualSize =
       index === 0 && listScrollMeta.isFirstCellCutOff
         ? listScrollMeta.firstCellSizeRemainder
-        : cellSize
+        : sizeDimension
     return {
       min,
       max,

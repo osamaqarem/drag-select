@@ -81,7 +81,8 @@ export function createListSnapshot(
     listHorizontalMeta,
     ctx.config.itemWidth,
     ctx.cellWidth,
-    listConfig.columnGap
+    listConfig.columnGap,
+    listConfig.horizontal
   )
   const breakpointsY = getBreakpoints(
     numRows,
@@ -89,7 +90,8 @@ export function createListSnapshot(
     listVerticalMeta,
     ctx.config.itemHeight,
     ctx.cellHeight,
-    listConfig.rowGap
+    listConfig.rowGap,
+    listConfig.horizontal
   )
 
   const rowBeginsAtIndex = scrolledRows * numColumns
