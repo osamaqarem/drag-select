@@ -1,7 +1,4 @@
-import type {
-  PanGesture,
-  SimultaneousGesture,
-} from "react-native-gesture-handler"
+import type { PanGesture, TapGesture } from "react-native-gesture-handler"
 import type { AnimatedRef, DerivedValue } from "react-native-reanimated"
 import type { ReanimatedScrollEvent } from "react-native-reanimated/lib/typescript/hook/commonTypes"
 import type { PropertyPaths } from "./property-paths"
@@ -76,12 +73,9 @@ export interface Config<ListItem = unknown> {
       right?: number
     }
   }
-  /**
-   * Configuration for the long press gesture. Long pressing an item activates selection mode.
-   */
   longPressGesture?: {
     /**
-     * Whether long pressing to activate selection mode is enabled.
+     * When `true`, long pressing an item will activate selection mode.
      * @default true
      */
     enabled?: boolean
@@ -91,18 +85,14 @@ export interface Config<ListItem = unknown> {
      */
     minDurationMs?: number
   }
-  /**
-   * Configuration for automatic scrolling.
-   * This occurs when panning near scrolling edges of the list.
-   */
   panGesture?: {
     /**
-     * When `true`, selection is cleared each time the pan gesture starts again.
+     * When `true`, selection is cleared each time the pan gesture activates.
      * @default false
      */
     resetSelectionOnStart?: boolean
     /**
-     * Whether automatic scrolling is enabled.
+     * When `true`, panning near the edges will automatically scroll the list.
      * @default true
      */
     scrollEnabled?: boolean
@@ -137,7 +127,7 @@ export interface Config<ListItem = unknown> {
   }
   tapGesture?: {
     /**
-     * Whether tapping an item while selection mode is active should add or remove it from selection.
+     * When `true`, tapping an item while selection mode is active will add or remove it from selection.
      * @default true
      */
     selectOnTapEnabled: boolean
@@ -171,17 +161,17 @@ export interface DragSelect {
   onScroll: (event: ReanimatedScrollEvent) => void
   gestures: {
     /**
-     * This returns a composed [tap](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture) and
-     * [long-press](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/long-press-gesture) gesture.
-     * Note that the long press gesture can be disabled by setting `config.longPressGesture.enabled` to `false`. See {@link Config.longPressGesture}.
+     * This returns a [tap](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture) gesture.
      *
      * Do not customize the behavior of this gesture directly.
      * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own.
      */
-    createItemPressHandler: (id: string, index: number) => SimultaneousGesture
+    createItemPressHandler: (id: string, index: number) => TapGesture
     /**
      * This is a single [pan gesture](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/pan-gesture).
      * If you need to rely solely on pressing items for selection, you can disable the pan gesture by setting `config.panScrollGesture.enabled` to `false`. See {@link Config.panGesture}.
+     *
+     * Note that the long press gesture can be disabled by setting `config.longPressGesture.enabled` to `false`. See {@link Config.longPressGesture}.
      *
      * Do not customize the behavior of this gesture directly.
      * Instead, [compose](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/composed-gestures) it with your own.

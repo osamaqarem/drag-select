@@ -12,7 +12,13 @@ import {
   useSharedValue,
   type MeasuredDimensions,
 } from "react-native-reanimated"
-import type { ReanimatedScrollEvent } from "react-native-reanimated/lib/typescript/hook/commonTypes"
+
+import type { PanEvent } from "./bounds"
+import {
+  createListSnapshot,
+  indexForSnapshot,
+  type ListSnapshot,
+} from "./list-snapshot"
 import { getPropertyByPath } from "./property-paths"
 import type { Config, DragSelect } from "./types"
 
@@ -114,19 +120,71 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     }
   }, [animatedRef, listLayout])
 
-  function select(id: string) {
-    "worklet"
-    const itemIndex = itemIndexById.value.get(id)
-    if (itemIndex === undefined) return
-    const inSelection = selectedItemMap.value[id]
-    if (inSelection !== undefined) return
-    selectedItemMap.modify((state) => {
-      // @ts-expect-error `state` is generic
-      state[id] = itemIndex
-      return state
-    })
-    if (onItemSelected) runOnJS(onItemSelected)(id, itemIndex)
-  }
+  const getListSnapshot = useCallback(
+    (e: PanEvent): ListSnapshot | null => {
+      "worklet"
+      if (!listLayout.value) return null
+
+      const inset = {
+        top: insetTop,
+        right: insetRight,
+        bottom: insetBottom,
+        left: insetLeft,
+      }
+      const listConfig = {
+        itemWidth,
+        itemHeight,
+        numRows: configNumRows,
+        numColumns: configNumColumns,
+        rowGap,
+        columnGap,
+        horizontal,
+      }
+      const listSnapshot = createListSnapshot(
+        e,
+        inset,
+        listConfig,
+        listLayout.value,
+        listScroll.value
+      )
+      if (!listSnapshot?.breakpointsX || !listSnapshot?.breakpointsY) {
+        return null
+      }
+      return listSnapshot
+    },
+    [
+      columnGap,
+      configNumColumns,
+      configNumRows,
+      horizontal,
+      insetBottom,
+      insetLeft,
+      insetRight,
+      insetTop,
+      itemHeight,
+      itemWidth,
+      listLayout,
+      listScroll,
+      rowGap,
+    ]
+  )
+
+  const select = useCallback(
+    (id: string) => {
+      "worklet"
+      const itemIndex = itemIndexById.value.get(id)
+      if (itemIndex === undefined) return
+      const inSelection = selectedItemMap.value[id]
+      if (inSelection !== undefined) return
+      selectedItemMap.modify((state) => {
+        // @ts-expect-error `state` is generic
+        state[id] = itemIndex
+        return state
+      })
+      if (onItemSelected) runOnJS(onItemSelected)(id, itemIndex)
+    },
+    [itemIndexById, onItemSelected, selectedItemMap]
+  )
 
   function deselect(id: string) {
     "worklet"
@@ -144,254 +202,18 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     selectedItemMap.value = {}
   }, [selectedItemMap])
 
-  function handleDragSelect(e: NonNullable<typeof panEvent.value>) {
+  function handleDragSelect(e: PanEvent) {
     "worklet"
     if (!selectModeActive.value || !listLayout.value || !axisItem.value) return
 
     const axisId = axisItem.value.id
     const axisIndex = axisItem.value.index
 
-    const inset = {
-      top: insetTop,
-      bottom:
-        listScroll.value.contentHeight - listScroll.value.offsetY - insetBottom,
-      left: insetLeft,
-      right:
-        listScroll.value.contentWidth - listScroll.value.offsetX - insetRight,
-    }
+    const listSnapshot = getListSnapshot(e)
+    if (!listSnapshot) return
 
-    const cellHeight = itemHeight + rowGap
-    const cellWidth = itemWidth + columnGap
-
-    const insetTopWithScroll = Math.max(0, inset.top - listScroll.value.offsetY)
-    const safePanY = e.y - insetTopWithScroll
-    const insetLeftWithScroll = Math.max(
-      0,
-      inset.left - listScroll.value.offsetX
-    )
-    const safePanX = e.x - insetLeftWithScroll
-
-    // noop when panning in top or bottom padding (outside list items)
-    if (safePanY < 0 || safePanX < 0 || e.y > listLayout.value.height) return
-
-    // account for a row being cut-off when scroll offset y is not 0
-    const scrolledPastTopInset = listScroll.value.offsetY >= inset.top
-    const firstFullyVisibleRowStart = scrolledPastTopInset
-      ? cellHeight - ((listScroll.value.offsetY - inset.top) % cellHeight)
-      : 0
-    const firstRowHeightRemainder = scrolledPastTopInset
-      ? Math.max(
-          itemHeight - ((listScroll.value.offsetY - inset.top) % cellHeight),
-          0
-        )
-      : 0
-    const isFirstRowCutOff = firstRowHeightRemainder > 0
-
-    // account for a column being cut-off when scroll offset x is not 0
-    const scrolledPastLeftInset = listScroll.value.offsetX >= inset.left
-    const firstFullyVisibleColumnStart = scrolledPastLeftInset
-      ? cellWidth - ((listScroll.value.offsetX - inset.left) % cellWidth)
-      : 0
-    const firstColumnWidthRemainder = scrolledPastLeftInset
-      ? Math.max(
-          itemWidth - ((listScroll.value.offsetX - inset.left) % cellWidth),
-          0
-        )
-      : 0
-    const isFirstColumnCutOff = firstColumnWidthRemainder > 0
-
-    const windowHeight = listLayout.value.height
-    const windowWidth = listLayout.value.width
-    const numRows = horizontal
-      ? configNumRows
-      : // +1 is to account for a partially visible row at the bottom and top of the list
-        // we only care that this value is higher than the correct number of rows for now.
-        Math.ceil(windowHeight / cellHeight) + 1
-    const numColumns = horizontal
-      ? Math.ceil(windowWidth / cellWidth) + 1
-      : configNumColumns
-
-    const scrolledRows = (() => {
-      if (!scrolledPastTopInset) return 0
-
-      const normalizedScroll = listScroll.value.offsetY - inset.top
-      const remainder = normalizedScroll % cellHeight
-      if (
-        remainder === 0 &&
-        normalizedScroll >= itemHeight &&
-        normalizedScroll < cellHeight
-      ) {
-        return 1
-      } else if (remainder >= itemHeight) {
-        return Math.floor(normalizedScroll / cellHeight) + 1
-      }
-      return Math.floor(normalizedScroll / cellHeight)
-    })()
-
-    const scrolledColumns = (() => {
-      if (!scrolledPastLeftInset) return 0
-
-      const normalizedScroll = listScroll.value.offsetX - inset.left
-      const remainder = normalizedScroll % cellWidth
-      if (
-        remainder === 0 &&
-        normalizedScroll >= itemWidth &&
-        normalizedScroll < cellWidth
-      ) {
-        return 1
-      } else if (remainder >= itemWidth) {
-        return Math.floor(normalizedScroll / cellWidth) + 1
-      }
-      return Math.floor(normalizedScroll / cellWidth)
-    })()
-
-    const rowBeginsAtIndex = scrolledRows * numColumns
-    const columnBeginsAtIndex = scrolledColumns * numRows
-
-    let boundingRectsX = Array.from({ length: numColumns }).map((_, index) => {
-      let minX = isFirstColumnCutOff
-        ? firstColumnWidthRemainder + columnGap + (index - 1) * cellWidth
-        : firstFullyVisibleColumnStart + index * cellWidth
-      minX = index === 0 && isFirstColumnCutOff ? 0 : minX
-
-      let maxX = minX + cellWidth
-      maxX =
-        index === 0 && isFirstColumnCutOff ? firstColumnWidthRemainder : maxX
-
-      const actualItemWidth =
-        index === 0 && isFirstColumnCutOff
-          ? firstColumnWidthRemainder
-          : cellWidth
-      return {
-        minX,
-        maxX,
-        center: minX + actualItemWidth / 2,
-      }
-    })
-
-    let boundingRectsY = Array.from({ length: numRows }).map((_, index) => {
-      let minY = isFirstRowCutOff
-        ? firstRowHeightRemainder + rowGap + (index - 1) * cellHeight
-        : firstFullyVisibleRowStart + index * cellHeight
-      minY = index === 0 && isFirstRowCutOff ? 0 : minY
-
-      let maxY = minY + cellHeight
-      maxY = index === 0 && isFirstRowCutOff ? firstRowHeightRemainder : maxY
-
-      const actualItemHeight =
-        index === 0 && isFirstRowCutOff ? firstRowHeightRemainder : cellHeight
-      return {
-        minY,
-        maxY,
-        center: minY + actualItemHeight / 2,
-      }
-    })
-
-    const axisXBoundingRect = boundingRectsX.find((rect) => {
-      return rect.minX <= safePanX && safePanX <= rect.maxX
-    })
-    if (!axisXBoundingRect) return
-    const isPanningLeftOfAxis = safePanX <= axisXBoundingRect.center
-
-    const axisYBoundingRect = boundingRectsY.find((rect) => {
-      return rect.minY <= safePanY && safePanY <= rect.maxY
-    })
-    if (!axisYBoundingRect) return
-    const isPanningTopOfAxis = safePanY <= axisYBoundingRect.center
-
-    let breakpointsX = Array.from({ length: numColumns }).map((_, index) => {
-      if (scrolledPastLeftInset) {
-        const factor = isFirstColumnCutOff
-          ? firstColumnWidthRemainder
-          : firstFullyVisibleColumnStart + itemWidth
-
-        if (isPanningLeftOfAxis) {
-          return index * cellWidth + factor
-        } else {
-          return index * cellWidth + columnGap + factor
-        }
-      } else {
-        if (isPanningLeftOfAxis) {
-          return itemWidth + index * cellWidth
-        }
-        return (index + 1) * cellWidth + firstFullyVisibleColumnStart
-      }
-    })
-    breakpointsX.unshift(isFirstColumnCutOff ? 0 : firstFullyVisibleColumnStart)
-
-    let breakpointsY = Array.from({ length: numRows }).map((_, index) => {
-      if (scrolledPastTopInset) {
-        const factor = isFirstRowCutOff
-          ? firstRowHeightRemainder
-          : firstFullyVisibleRowStart + itemHeight
-
-        if (isPanningTopOfAxis) {
-          return index * cellHeight + factor
-        } else {
-          return index * cellHeight + rowGap + factor
-        }
-      } else {
-        if (isPanningTopOfAxis) {
-          return itemHeight + index * cellHeight
-        }
-        return (index + 1) * cellHeight + firstFullyVisibleRowStart
-      }
-    })
-    breakpointsY.unshift(isFirstRowCutOff ? 0 : firstFullyVisibleRowStart)
-
-    const getBreakpointBoundsIndices = (
-      value: number,
-      breakpoints: Array<number>
-    ): [number, number] => {
-      let idx = 0
-      for (const breakpoint of breakpoints) {
-        if (value >= breakpoint) {
-          idx += 1
-        } else {
-          return [idx - 1, idx]
-        }
-      }
-      return [idx - 1, idx]
-    }
-
-    let [indexLowY, indexHighY] = getBreakpointBoundsIndices(
-      safePanY,
-      breakpointsY
-    )
-    let [indexLowX, indexHighX] = getBreakpointBoundsIndices(
-      safePanX,
-      breakpointsX
-    )
-    if (indexLowX === -1 || indexLowY === -1) return
-
-    const lowY = breakpointsY[indexLowY]!
-    const highY = breakpointsY[indexHighY]!
-    const lowX = breakpointsX[indexLowX]!
-    const highX = breakpointsX[indexHighX]!
-    const withinX = safePanX >= lowX && safePanX <= highX
-    const withinY = safePanY >= lowY && safePanY <= highY
-
-    if (!withinY || !withinX) return
-
-    const calculateIndex = (rowIndex: number, colIndex: number) => {
-      const arraysStartAtZero = 1
-      if (horizontal) {
-        return (
-          colIndex * numRows -
-          (numRows - rowIndex) +
-          columnBeginsAtIndex -
-          arraysStartAtZero
-        )
-      }
-      return (
-        rowIndex * numColumns -
-        (numColumns - colIndex) +
-        rowBeginsAtIndex -
-        arraysStartAtZero
-      )
-    }
-
-    const itemIndex = calculateIndex(indexHighY, indexHighX)
+    const itemIndex = indexForSnapshot(listSnapshot)
+    if (typeof itemIndex !== "number") return
 
     if (panTransitionFromIndex.value === null) {
       panTransitionFromIndex.value = itemIndex
@@ -427,8 +249,8 @@ export function useDragSelect<ListItem extends Record<string, any>>(
       deselect(id)
     }
 
-    const axisRow = Math.floor(axisIndex / numColumns) + 1
-    const toRow = Math.floor(itemIndex / numColumns) + 1
+    const axisRow = Math.floor(axisIndex / listSnapshot.numColumns) + 1
+    const toRow = Math.floor(itemIndex / listSnapshot.numColumns) + 1
 
     const isAxisRow = toRow === axisRow
     const afterAxisRow = toRow > axisRow
@@ -508,17 +330,6 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     }
   }, false)
 
-  function longPressOnStart(id: string) {
-    "worklet"
-    const index = itemIndexById.value.get(id)
-    if (index === undefined) return
-    axisItem.value = { id, index }
-
-    const inSelection = selectedItemMap.value[id]
-    if (inSelection !== undefined) return
-    select(id)
-  }
-
   function tapOnStart(id: string, index: number) {
     "worklet"
     if (!itemIndexById.value.has(id)) return
@@ -534,43 +345,65 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     }
   }
 
-  const panHandler = useMemo(
-    () =>
-      Gesture.Pan()
-        .maxPointers(1)
-        .activateAfterLongPress(longPressMinDurationMs)
-        .onStart(() => {
-          if (panResetSelectionOnStart) {
-            selectionClear()
-          }
-          measureListLayout()
-          runOnJS(setFrameCbActive)(true)
-        })
-        .onUpdate((e) => {
-          panEvent.value = {
-            y: e.y,
-            x: e.x,
-            translationX: e.translationX,
-            translationY: e.translationY,
-          }
-        })
-        .onEnd(() => {
-          axisItem.value = null
-          panTransitionFromIndex.value = null
-          panEvent.value = null
-          runOnJS(setFrameCbActive)(false)
-        }),
-    [
-      axisItem,
-      longPressMinDurationMs,
-      measureListLayout,
-      panEvent,
-      panResetSelectionOnStart,
-      panTransitionFromIndex,
-      selectionClear,
-      setFrameCbActive,
-    ]
-  )
+  const panHandler = useMemo(() => {
+    const gesture = Gesture.Pan()
+      .maxPointers(1)
+      .onStart((e) => {
+        measureListLayout()
+        if (!listLayout.value) return
+
+        const listSnapshot = getListSnapshot(e)
+        if (!listSnapshot) return
+
+        const axisIndex = indexForSnapshot(listSnapshot)
+        if (typeof axisIndex !== "number") return
+        const id = itemIdByIndex.value.get(axisIndex)
+        if (id === undefined) return
+
+        if (panResetSelectionOnStart) {
+          selectionClear()
+        }
+
+        axisItem.value = { id, index: axisIndex }
+        select(id)
+
+        runOnJS(setFrameCbActive)(true)
+      })
+      .onUpdate((e) => {
+        panEvent.value = {
+          y: e.y,
+          x: e.x,
+          translationX: e.translationX,
+          translationY: e.translationY,
+        }
+      })
+      .onEnd(() => {
+        axisItem.value = null
+        panTransitionFromIndex.value = null
+        panEvent.value = null
+        runOnJS(setFrameCbActive)(false)
+      })
+
+    if (longPressGestureEnabled) {
+      gesture.activateAfterLongPress(longPressMinDurationMs)
+    }
+
+    return gesture
+  }, [
+    axisItem,
+    getListSnapshot,
+    itemIdByIndex.value,
+    listLayout.value,
+    longPressGestureEnabled,
+    longPressMinDurationMs,
+    measureListLayout,
+    panEvent,
+    panResetSelectionOnStart,
+    panTransitionFromIndex,
+    select,
+    selectionClear,
+    setFrameCbActive,
+  ])
 
   function createItemPressHandler(id: string, index: number) {
     // The minimum value for either min/max duration for a gesture is 1.
@@ -579,19 +412,13 @@ export function useDragSelect<ListItem extends Record<string, any>>(
     const tapGesture = Gesture.Tap()
       .maxDuration(tapGestureMaxDuration)
       .onStart(() => tapOnStart(id, index))
-
-    const longPressGesture = Gesture.LongPress()
-      .minDuration(tapGestureMaxDuration + 1)
-      .onStart(() => longPressOnStart(id))
-      .simultaneousWithExternalGesture(panHandler)
-      .enabled(longPressGestureEnabled)
-      .numberOfPointers(1)
-      .maxDistance(50)
-
-    return Gesture.Simultaneous(tapGesture, longPressGesture)
+    return tapGesture
   }
 
-  function onScroll(event: ReanimatedScrollEvent) {
+  function onScroll(event: {
+    contentSize: { height: number; width: number }
+    contentOffset: { y: number; x: number }
+  }) {
     "worklet"
     listScroll.value = {
       contentHeight: event.contentSize.height,
