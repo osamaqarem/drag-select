@@ -401,6 +401,7 @@ The [recipes app](./example/README.md) contains sample integrations of drag-sele
 | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | <video src="https://github.com/user-attachments/assets/38907cfb-ae15-4c5b-9397-d0bf951bd2ad"/> | [Code](./example/app/gallery.tsx)<br/>Example of a `FlatList` integration.<br/>Has haptic feedback on selection change. |
 | <video src="https://github.com/user-attachments/assets/e16926f4-f9f9-4927-98d4-dc85383259ec"/> | [Code](./example/app/file-manager.tsx)<br/>Example of a `ScrollView` integration.<br/>List items are animated `Pressable` components.    |
+| <video src="https://github.com/user-attachments/assets/c745e80b-ad24-44e9-a56f-1fed37f4005d"/> | [Code](./example/app/github-contributions.tsx)<br/>Example of a horizontal list.<br/>Only allows selection of a continiuous range.   |
 
 ## Performance
 

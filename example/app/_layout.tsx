@@ -32,6 +32,13 @@ export default function Layout() {
               title: "File Manager",
             }}
           />
+          <Drawer.Screen
+            name="github-contributions"
+            options={{
+              drawerLabel: "GitHub Contributions",
+              title: "GitHub Contributions",
+            }}
+          />
         </Drawer>
       </ThemeProvider>
     </GestureHandlerRootView>
