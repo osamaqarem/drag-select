@@ -1,6 +1,6 @@
 {
   "name": "@osamaq/drag-select",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "A utility for creating a pan gesture that auto-selects items in a list, like your favorite gallery app.",
   "source": "./src/index.tsx",
   "main": "./lib/module/index.js",
