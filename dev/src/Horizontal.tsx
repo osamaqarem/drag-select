@@ -56,7 +56,7 @@ export function HorizontalList() {
       },
       horizontal: true,
     },
-    panGesture: { enabled: false },
+    panGesture: { scrollEnabled: false },
     onItemPress: (id) => {
       console.log("onItemPress", id)
     },
